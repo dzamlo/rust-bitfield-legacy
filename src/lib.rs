@@ -14,7 +14,7 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_macro("bitfield", expand_bitfield);
 }
 
-fn expand_bitfield(cx: &mut ExtCtxt, sp: Span, args: &[ast::TokenTree])
+fn expand_bitfield(cx: &mut ExtCtxt, sp: Span, tts: &[ast::TokenTree])
         -> Box<MacResult + 'static> {
     return DummyResult::any(sp);
 }
