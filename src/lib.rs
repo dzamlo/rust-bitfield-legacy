@@ -6,8 +6,9 @@ extern crate rustc;
 
 use rustc::plugin::Registry;
 use syntax::ast;
-use syntax::codemap::Span;
+use syntax::codemap::{DUMMY_SP, Span};
 use syntax::ext::base::{ExtCtxt, MacItems, MacResult};
+use syntax::ext::build::AstBuilder;
 use syntax::parse::common::SeqSep;
 use syntax::parse::parser::Parser;
 use syntax::parse::token;
@@ -85,10 +86,27 @@ fn expand_bitfield(cx: &mut ExtCtxt, _sp: Span, tts: &[ast::TokenTree])
     
     let struct_decl = quote_item!(cx, struct $struct_ident<'a> { data: &'a [u8, ..$byte_length]};).unwrap();
      
-    //TODO: create the impl item with a constructor and methods for each fields
+    let mut methods = Vec::with_capacity(fields.len()*2+1);
+    
+    methods.push(ast::MethodImplItem(quote_method!(cx, 
+        fn new(data: &'a [u8, ..$byte_length]) -> $struct_ident { 
+            $struct_ident { data: data}
+        })));
 
-    println!("{}", fields);
-    return MacItems::new(vec![struct_decl].into_iter());
+    //TODO: convert fields to getter/setter methods
+    
+    let struct_impl_tpl = quote_item!(cx, impl<'a> $struct_ident<'a> { }).unwrap();
+    
+    let node = struct_impl_tpl.node.clone();
+    //Put the methods we generated inside the impl block.
+    let node = match node {
+        ast::ItemImpl(a, b, c, _) => ast::ItemImpl(a, b, c, methods),
+        _ => unreachable!()
+    };
+    
+    let struct_impl = cx.item(DUMMY_SP, struct_ident, vec![], node);
+    
+    return MacItems::new(vec![struct_decl, struct_impl].into_iter());
 }
 
 #[plugin_registrar]
