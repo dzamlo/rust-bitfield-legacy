@@ -43,9 +43,9 @@ fn parse_field(parser: &mut Parser) -> Field {
     if parser.eat(&token::OpenDelim(token::Bracket)) {
        // ArrayField
        let  element_length = parse_u64(parser);
-       if element_length == 0 {
+       if element_length == 0 || element_length > 64 {
            let span = parser.last_span;
-           parser.span_fatal(span, "Field length must be > 0");
+           parser.span_fatal(span, "Field length must be > 0 and <= 64");
        }
        parser.expect(&token::Comma);
        parser.expect(&token::DotDot);
@@ -60,9 +60,9 @@ fn parse_field(parser: &mut Parser) -> Field {
     else {
       //ScalarField
       let length = parse_u64(parser);
-      if length == 0 {
+      if length == 0  || length > 64{
           let span = parser.last_span;
-          parser.span_fatal(span, "Field length must be > 0");
+          parser.span_fatal(span, "Field length must be > 0 and <= 64");
       }
       ScalarField {name: name, length: length}
     }
