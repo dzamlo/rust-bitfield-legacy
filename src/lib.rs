@@ -34,24 +34,27 @@ impl Field {
         if length == 1 {
             quote_expr!(cx, (self.data[($start/8) as uint] & (0x1 << (7-$start%8) as uint)) != 0)
         } else {
-            //TODO: check if optimised correctly
-            quote_expr!(cx,
-                {
-                    let mut result: $value_type = 0;
-                    let mut start = $start;
-                    let mut bits_to_get = $length;
-                    while bits_to_get > 0 {
-                        let can_get = std::cmp::min(bits_to_get, 8-(start%8) as u8);
-                        result <<= can_get as uint;
-                        let byte = self.data[(start/8) as uint];
-                        let mask = 0xFF >> (8-can_get) as uint;
-                        result |= ((byte >> (8-can_get-(start%8) as u8) as uint) & mask) as $value_type;
-                        bits_to_get -= can_get;
-                        start += can_get as u64;
-                    }
-                    result
-                }
-            )
+            let mut value_expr = None;
+            let mut bits_to_get = length;
+            let mut bit_offset = start;
+            while bits_to_get > 0 {
+                let can_get = std::cmp::min(bits_to_get, 8-(bit_offset%8) as u8);
+                let index = (bit_offset/8) as uint;
+                let mask = 0xFFu8 >> (8-can_get) as uint;
+                let byte_shift = (8-can_get-(bit_offset%8) as u8) as uint;
+                let bits_expr = quote_expr!(cx, ((self.data[$index] >> $byte_shift) & $mask) as $value_type);
+                
+                value_expr = match value_expr {
+                     Some(expr) => {
+                         let shifted = cx.expr_binary(DUMMY_SP, ast::BiShl, expr, cx.expr_uint(DUMMY_SP, can_get as uint));
+                         Some(cx.expr_binary(DUMMY_SP, ast::BiBitOr, shifted, bits_expr))
+                     }
+                     None => Some(bits_expr)
+                };   
+                bits_to_get -= can_get;
+                bit_offset += can_get as u64;
+            }
+           value_expr.unwrap()
         }
     }
     
