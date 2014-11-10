@@ -41,9 +41,7 @@ fn get_set_aligned() {
    assert!(foo.get_aligned_u16() == u16::MAX);
    
    assert!(foo.get_aligned_u32() == 0);
-   println!("{}", foo.data.as_slice());
    foo.set_aligned_u32(u32::MAX);
-   println!("{}", foo.data.as_slice());
    assert!(foo.get_aligned_u32() == u32::MAX);
    
    assert!(foo.get_aligned_u64() == 0);
@@ -159,9 +157,7 @@ fn get_set_aligned_array() {
    assert!(foo.get_aligned_u16() == [42, 0, u16::MAX]);
    
    assert!(foo.get_aligned_u32() == [0, 0, 0]);
-   println!("{}", foo.data.as_slice());
    foo.set_aligned_u32([42, 0, u32::MAX]);
-   println!("{}", foo.data.as_slice());
    assert!(foo.get_aligned_u32() == [42, 0, u32::MAX]);
    
    assert!(foo.get_aligned_u64() == [0, 0, 0]);
@@ -187,9 +183,7 @@ fn get_set_unaligned_whole_size_array() {
    assert!(foo.get_unaligned_u16() == [42, 0, u16::MAX]);
    
    assert!(foo.get_unaligned_u32() == [0, 0, 0]);
-   println!("{}", foo.data.as_slice());
    foo.set_unaligned_u32([42, 0, u32::MAX]);
-   println!("{}", foo.data.as_slice());
    assert!(foo.get_unaligned_u32() == [42, 0, u32::MAX]);
    
    assert!(foo.get_unaligned_u64() == [0, 0, 0]);
