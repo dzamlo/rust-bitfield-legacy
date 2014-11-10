@@ -1,4 +1,5 @@
 #![feature(phase)]
+#![allow(dead_code)]
 
 #[phase(plugin)]
 extern crate bitfield;
