@@ -242,3 +242,77 @@ fn get_set_unaligned_nonwhole_size_array(){
    foo.set_unaligned_63([42, 0, u64::MAX]);
    assert!(foo.get_unaligned_63() == [42, 0, 0x7FFFFFFFFFFFFFFF]);
 }
+
+bitfield!(BitfiedlTestStruct3,
+    byte: [1, ..8],
+    )
+    
+#[test]
+fn bits_pos() {
+    let data = [0];
+    let mut foo = BitfiedlTestStruct3::new(data);
+    assert!(foo.get_byte() == [false, ..8]);
+    foo.data[0] = 0xFF;
+    assert!(foo.get_byte() == [true, ..8]);
+    foo.data[0] = 0b11000011;
+    assert!(foo.get_byte() == [true, true, false, false, false, false, true, true]);
+    foo.data[0] = 0b10101010;
+    assert!(foo.get_byte() == [true, false, true, false, true, false, true, false]);
+    foo.set_byte([true, ..8]);
+    assert!(foo.data[0] == 0xFF);
+    foo.set_byte([false, ..8]);
+    assert!(foo.data[0] == 0x00);
+    foo.set_byte([true, true, false, false, false, false, true, true]);
+    assert!(foo.data[0] == 0b11000011);
+    foo.set_byte([true, false, true, false, true, false, true, false]);
+    assert!(foo.data[0] == 0b10101010);
+}
+
+bitfield!(BitfiedlTestStruct4,
+    value: 16,
+    )
+
+#[test]
+fn byte_order_16() {
+   let data = [0, ..2];
+   let mut foo = BitfiedlTestStruct4::new(data);
+   assert!(foo.get_value() == 0x0000);
+   foo.data = [0xAB, 0xCD];
+   assert!(foo.get_value() == 0xABCD);
+   foo.data = [0xCD, 0xAB];
+   assert!(foo.get_value() == 0xCDAB);
+   foo.set_value(0x1234);
+   assert!(foo.data == [0x12, 0x34]);
+   foo.set_value(0x3412);
+   assert!(foo.data == [0x34, 0x12]);
+}
+
+bitfield!(BitfiedlTestStruct5,
+    value: 32,
+    )
+
+#[test]
+fn byte_order_32() {
+   let data = [0, ..4];
+   let mut foo = BitfiedlTestStruct5::new(data);
+   assert!(foo.get_value() == 0x00000000);
+   foo.data = [0x12, 0x34, 0x56, 0x78];
+   assert!(foo.get_value() == 0x12345678);
+   foo.set_value(0xFEDCBA98);
+   assert!(foo.data == [0xFE, 0xDC, 0xBA, 0x98]);
+}
+
+bitfield!(BitfiedlTestStruct6,
+    value: 64,
+    )
+
+#[test]
+fn byte_order_64() {
+   let data = [0, ..8];
+   let mut foo = BitfiedlTestStruct6::new(data);
+   assert!(foo.get_value() == 0x0000000000000000);
+   foo.data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+   assert!(foo.get_value() == 0x123456789ABCDEF0);
+   foo.set_value(0xFEDCBA9876543210);
+   assert!(foo.data == [0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10]);
+}
