@@ -47,6 +47,9 @@ impl Field {
                 
                 value_expr = match value_expr {
                      Some(expr) => {
+                         // ExprParen should be a no-ops but it seem that the to_tokens used by quote_method 
+                         // "flatten" the expression. ExprParen prevent this.
+                         let expr = cx.expr(DUMMY_SP, ast::ExprParen(expr));
                          let shifted = cx.expr_binary(DUMMY_SP, ast::BiShl, expr, cx.expr_uint(DUMMY_SP, can_get as uint));
                          Some(cx.expr_binary(DUMMY_SP, ast::BiBitOr, shifted, bits_expr))
                      }
