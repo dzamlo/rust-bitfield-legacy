@@ -179,12 +179,12 @@ fn expand_bitfield(cx: &mut ExtCtxt, _sp: Span, tts: &[ast::TokenTree])
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
     let byte_length = ((bit_length+7)/8) as uint;
     
-    let struct_decl = quote_item!(cx, struct $struct_ident<'a> { data: &'a [u8, ..$byte_length]};).unwrap();
+    let struct_decl = quote_item!(cx, struct $struct_ident { data: [u8, ..$byte_length]};).unwrap();
      
     let mut methods = Vec::with_capacity(fields.len()*2+1);
     
     methods.push(ast::MethodImplItem(quote_method!(cx, 
-        fn new(data: &'a [u8, ..$byte_length]) -> $struct_ident { 
+        fn new(data: [u8, ..$byte_length]) -> $struct_ident { 
             $struct_ident { data: data}
         })));
 
@@ -194,7 +194,7 @@ fn expand_bitfield(cx: &mut ExtCtxt, _sp: Span, tts: &[ast::TokenTree])
         field_start += field.bit_len();
     }
     
-    let struct_impl_tpl = quote_item!(cx, impl<'a> $struct_ident<'a> { }).unwrap();
+    let struct_impl_tpl = quote_item!(cx, impl $struct_ident { }).unwrap();
     
     let node = struct_impl_tpl.node.clone();
     //Put the methods we generated inside the impl block.
