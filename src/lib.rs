@@ -65,8 +65,9 @@ impl Field {
     fn gen_single_value_set_stmt(cx: &mut ExtCtxt, type_length: u8, start: u64, length: u8) -> P<ast::Stmt> {
         if length == 1 {
             let mask = 0x1u8 << (7-start%8) as uint;
-            quote_stmt!(cx, if value {self.data[($start/8) as uint] |= $mask} 
-                            else {self.data[($start/8) as uint] &= !($mask)})
+            let index = (start/8) as uint;
+            quote_stmt!(cx, if value {self.data[$index] |= $mask} 
+                            else {self.data[$index] &= !($mask)})
         } else {
             let mut stmts = Vec::new();
             let mut bits_to_set = length;
@@ -78,7 +79,7 @@ impl Field {
                 let can_set = std::cmp::min(bits_to_set, 8-(bit_offset%8) as u8);
                 let index = (bit_offset/8) as uint;
                 
-                // mask so only the corect bits are modified
+                // only bits set to 1 in the mask are modified
                 let mask = (0xFFu8 >> 8-can_set as uint) << (8-can_set-(bit_offset%8) as u8) as uint;
 
                 if value_shift > 0 {
