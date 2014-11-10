@@ -30,9 +30,10 @@ impl Field {
        }
     }
     
-    fn gen_single_value_expr(cx: &mut ExtCtxt, start: u64, value_type: &P<ast::Ty>, length: u8) -> P<ast::Expr> {
+    fn gen_single_value_get_expr(cx: &mut ExtCtxt, value_type: &P<ast::Ty>, start: u64, length: u8) -> P<ast::Expr> {
         if length == 1 {
-            quote_expr!(cx, (self.data[($start/8) as uint] & (0x1 << (7-$start%8) as uint)) != 0)
+            let byte_shift = (7-start%8) as uint;
+            quote_expr!(cx, (self.data[($start/8) as uint] & (0x1 << $byte_shift)) != 0)
         } else {
             let mut value_expr = None;
             let mut bits_to_get = length;
@@ -58,11 +59,52 @@ impl Field {
         }
     }
     
+    fn gen_single_value_set_stmt(cx: &mut ExtCtxt, type_length: u8, start: u64, length: u8) -> P<ast::Stmt> {
+        if length == 1 {
+            let mask = 0x1u8 << (7-start%8) as uint;
+            quote_stmt!(cx, if value {self.data[($start/8) as uint] |= $mask} 
+                            else {self.data[($start/8) as uint] &= !($mask)})
+        } else {
+            let mut stmts = Vec::new();
+            let mut bits_to_set = length;
+            let mut bit_offset = start;
+            
+            let mut value_shift = (start%8) as int - (type_length - length) as int + 8*(type_length/8-1) as int;
+
+            while bits_to_set > 0 {
+                let can_set = std::cmp::min(bits_to_set, 8-(bit_offset%8) as u8);
+                let index = (bit_offset/8) as uint;
+                
+                // mask so only the corect bits are modified
+                let mask = (0xFFu8 >> 8-can_set as uint) << (8-can_set-(bit_offset%8) as u8) as uint;
+
+                if value_shift > 0 {
+                    let value_shift = value_shift as uint;
+                    stmts.push(quote_stmt!(cx, self.data[$index] = 
+                        (self.data[$index] & !$mask) | 
+                        ((value >> $value_shift) as u8)& $mask));
+                } else {
+                    let value_shift = (-value_shift) as uint;
+                    stmts.push(quote_stmt!(cx, self.data[$index] = 
+                        (self.data[$index] & !$mask) | 
+                        ((value << $value_shift) as u8)& $mask));
+                }
+                
+                bits_to_set -= can_set;
+                bit_offset += can_set as u64;
+                value_shift -= 8;
+            }
+            let block = cx.block(DUMMY_SP, stmts, None);
+            let expr = cx.expr(DUMMY_SP, ast::ExprBlock(block));
+            cx.stmt_expr(expr)
+        }
+   }
+    
    fn to_methods(&self, cx: &mut ExtCtxt, start: u64) -> Vec<P<ast::Method>> {
        let mut methods = vec![];
        match *self {
            ArrayField(ref name, count, element_length) => {
-               let element_type = size_to_ty(cx, element_length).unwrap();
+               let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                let value_type = make_array_ty(cx, &element_type, count);
                let getter_name = "get_".to_string() + *name;
                let getter_ident = token::str_to_ident(getter_name.as_slice());
@@ -71,7 +113,7 @@ impl Field {
                for i in range(0, count) {
                     let element_start = start+(i as u64)*(element_length as u64);
                     element_getter_exprs.push(
-                        Field::gen_single_value_expr(cx, element_start, &element_type, element_length)
+                        Field::gen_single_value_get_expr(cx, &element_type, element_start, element_length)
                     );
                }
                
@@ -84,12 +126,39 @@ impl Field {
                    }
                );
                methods.push(getter);
+
+               let setter_name = "set_".to_string() + *name;
+               let setter_ident = token::str_to_ident(setter_name.as_slice());
+               //let setter_stmt = Field::gen_single_value_set_stmt(cx, value_type_length, start, element_length);
+               let mut element_setter_stmts = Vec::new();
+               for i in range(0, count) {
+                    let element_start = start+(i as u64)*(element_length as u64);
+                    let stmt = Field::gen_single_value_set_stmt(cx, value_type_length, element_start, element_length);
+                    element_setter_stmts.push(
+                        quote_stmt!(cx, { let value = value[$i]; $stmt})
+                    );
+               }
+               
+               
+               
+               let block = cx.block(DUMMY_SP, element_setter_stmts, None);
+               let expr = cx.expr(DUMMY_SP, ast::ExprBlock(block));
+               let setter_stmt = cx.stmt_expr(expr);
+               
+               let setter = quote_method!(cx,
+                   #[inline]
+                   fn $setter_ident(&mut self, value: $value_type) {
+                      $setter_stmt
+                   }
+               );
+               methods.push(setter);
+               
            },
            ScalarField(ref name, length) => {
-               let value_type = size_to_ty(cx, length).unwrap();
+               let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
                let getter_name = "get_".to_string() + *name;
                let getter_ident = token::str_to_ident(getter_name.as_slice());
-               let getter_expr = Field::gen_single_value_expr(cx, start, &value_type, length);
+               let getter_expr = Field::gen_single_value_get_expr(cx, &value_type, start, length);
                let getter = quote_method!(cx,
                    #[inline]
                    fn $getter_ident(&self) -> $value_type {
@@ -97,7 +166,16 @@ impl Field {
                    }
                );
                methods.push(getter);
-               
+               let setter_name = "set_".to_string() + *name;
+               let setter_ident = token::str_to_ident(setter_name.as_slice());
+               let setter_stmt = Field::gen_single_value_set_stmt(cx, value_type_length, start, length);
+               let setter = quote_method!(cx,
+                   #[inline]
+                   fn $setter_ident(&mut self, value: $value_type) {
+                      $setter_stmt
+                   }
+               );
+               methods.push(setter);               
            },
        }
        
@@ -106,14 +184,14 @@ impl Field {
 }
 
 /// Return the smaller bool or uint type than can hold an amount of bits.
-fn size_to_ty(cx: &mut ExtCtxt, size: u8) -> Option<P<ast::Ty>> {
+fn size_to_ty(cx: &mut ExtCtxt, size: u8) -> Option<(P<ast::Ty>, u8)> {
        match size {
           i if i == 0 => None,
-          i if i == 1 => Some(quote_ty!(cx, bool)),
-          i if i <= 8 => Some(quote_ty!(cx, u8)),
-          i if i <= 16 => Some(quote_ty!(cx, u16)),
-          i if i <= 32 => Some(quote_ty!(cx, u32)),
-          i if i <= 64 => Some(quote_ty!(cx, u64)),          
+          i if i == 1 => Some((quote_ty!(cx, bool), 1)),
+          i if i <= 8 => Some((quote_ty!(cx, u8), 8)),
+          i if i <= 16 => Some((quote_ty!(cx, u16), 16)),
+          i if i <= 32 => Some((quote_ty!(cx, u32), 32)),
+          i if i <= 64 => Some((quote_ty!(cx, u64), 64)),          
           _ => None
        }
 }
