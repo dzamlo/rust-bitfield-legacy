@@ -133,7 +133,6 @@ impl Field {
 
                let setter_name = "set_".to_string() + *name;
                let setter_ident = token::str_to_ident(setter_name.as_slice());
-               //let setter_stmt = Field::gen_single_value_set_stmt(cx, value_type_length, start, element_length);
                let mut element_setter_stmts = Vec::new();
                for i in range(0, count) {
                     let element_start = start+(i as u64)*(element_length as u64);
