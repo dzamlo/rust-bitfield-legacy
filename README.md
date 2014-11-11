@@ -3,7 +3,7 @@ rust-bitfield
 
 [![Build Status](https://travis-ci.org/dzamlo/rust-bitfield.svg?branch=master)](https://travis-ci.org/dzamlo/rust-bitfield)
 
-This project provides a procedural macro to generate bitfield like struct.
+This project provides a procedural macro to generate bitfield-like struct.
 
 The generated structs use an array of u8 for the data and provide methods to
 get and set the values of the fields.
