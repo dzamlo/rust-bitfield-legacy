@@ -4,6 +4,8 @@
 #[phase(plugin)]
 extern crate bitfield;
 
+use std::io::net::ip::{IpAddr, Ipv4Addr};
+
 bitfield!(IpV4Header,
     version: 4,
     ihl: 4,
@@ -21,6 +23,18 @@ bitfield!(IpV4Header,
     source_address: [8, ..4],
     destination_address: [8, ..4], 
     )
+    
+impl IpV4Header {
+    fn get_source_as_ip_addr(&self) -> IpAddr {
+       let src = self.get_source_address();
+       Ipv4Addr(src[0], src[1], src[2], src[3])
+    }
+
+    fn get_destination_as_ip_addr(&self) -> IpAddr {
+       let dst = self.get_destination_address();
+       Ipv4Addr(dst[0], dst[1], dst[2], dst[3])
+    }
+}
 
 fn main() {
     let data = [0x45, 0x00, 0x00, 0x40, 0x69, 0x27, 0x40, 0x00, 0x40, 0x11, 
@@ -36,4 +50,6 @@ fn main() {
     assert!(header.get_fragment_offset() == 0);
     assert!(header.get_protocol() == 0x11);
     assert!(header.get_source_address() == [192, 168, 1, 42]);
+    println!("from {} to {}", header.get_source_as_ip_addr(), header.get_destination_as_ip_addr());
 }
+
