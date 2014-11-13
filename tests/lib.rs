@@ -310,3 +310,37 @@ fn byte_order_64() {
    foo.set_value(0xFEDCBA9876543210);
    assert!(foo.data == [0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10]);
 }
+
+bitfield!(BitfiedlTestStruct7,
+    field1: 0x10,
+    field2: 0o10,
+    field3: 0b10,
+    field4: 6_0,
+    field5: [0xA, ..0b11],
+    )
+
+#[test]
+fn other_literal_form_for_fields_size() {
+   let data = [0, ..15];
+   let mut foo = BitfiedlTestStruct7::new(data);
+   
+   assert!(foo.get_field1() == 0x0);
+   foo.set_field1(u16::MAX);
+   assert!(foo.get_field1() == u16::MAX);
+   
+   assert!(foo.get_field2() == 0x0);
+   foo.set_field2(u8::MAX);
+   assert!(foo.get_field2() == u8::MAX);
+   
+   assert!(foo.get_field3() == 0x0);
+   foo.set_field3(u8::MAX);
+   assert!(foo.get_field3() == 0x3);
+   
+   assert!(foo.get_field4() == 0x0);
+   foo.set_field4(u64::MAX);
+   assert!(foo.get_field4() == 0xFFFFFFFFFFFFFFF);
+   
+   assert!(foo.get_field5() == [0, 0, 0]);
+   foo.set_field5([42, 0, u16::MAX]);
+   assert!(foo.get_field5() == [42, 0, 0x3FF]);
+}
