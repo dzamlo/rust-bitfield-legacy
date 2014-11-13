@@ -12,6 +12,9 @@ The generatated structs are not compatible with C bitfield. Unlike in C, the
 position of each bytes and bits in the underling bytes array is specifed. The
 bytes are in network order, and the bits are MSB first. No padding is added.
 
+Because the generated struct is just a normal struct, you can add other 
+methods to it or implement the trait you want.
+
 Possible use includes decoding some binary file formats and reading the
 headers of some network protocols or some low-level protocols.
 
