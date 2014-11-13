@@ -82,6 +82,8 @@ impl Field {
                 // only bits set to 1 in the mask are modified
                 let mask = (0xFFu8 >> 8-can_set as uint) << (8-can_set-(bit_offset%8) as u8) as uint;
 
+                // positive value of value_shift means we want to shift to the right and
+                // negative value means we want shift to the left
                 if value_shift > 0 {
                     let value_shift = value_shift as uint;
                     stmts.push(quote_stmt!(cx, self.data[$index] = 
@@ -186,7 +188,9 @@ impl Field {
     }
 }
 
-/// Return the smaller bool or uint type than can hold an amount of bits.
+/// Return the smaller bool or uint type than can hold an amount of bits. Also return the size
+/// of the type in bits.
+/// The size for the bool type is not releavant because it is never used.
 fn size_to_ty(cx: &mut ExtCtxt, size: u8) -> Option<(P<ast::Ty>, u8)> {
        match size {
           i if i == 0 => None,
@@ -278,6 +282,7 @@ fn expand_bitfield(cx: &mut ExtCtxt, _sp: Span, tts: &[ast::TokenTree])
     let struct_impl_tpl = quote_item!(cx, impl $struct_ident { }).unwrap();
     
     let node = struct_impl_tpl.node.clone();
+    
     //Put the methods we generated inside the impl block.
     let node = match node {
         ast::ItemImpl(a, b, c, _) => ast::ItemImpl(a, b, c, methods),
