@@ -1,5 +1,4 @@
 #![feature(plugin_registrar, quote)]
-#![feature(struct_variant)]
 
 extern crate syntax;
 extern crate rustc;
