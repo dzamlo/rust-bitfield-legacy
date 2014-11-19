@@ -24,8 +24,8 @@ enum Field {
 impl Field {
     fn bit_len(&self) -> u64 {
        match *self {
-          ArrayField(_, count, element_length) => (count as u64) * element_length as u64,
-          ScalarField(_, length) => length as u64,
+          Field::ArrayField(_, count, element_length) => (count as u64) * element_length as u64,
+          Field::ScalarField(_, length) => length as u64,
        }
     }
     
@@ -108,7 +108,7 @@ impl Field {
    fn to_methods(&self, cx: &mut ExtCtxt, start: u64) -> Vec<P<ast::Method>> {
        let mut methods = vec![];
        match *self {
-           ArrayField(ref name, count, element_length) => {
+           Field::ArrayField(ref name, count, element_length) => {
                let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                let value_type = make_array_ty(cx, &element_type, count);
                let getter_name = "get_".to_string() + *name;
@@ -158,7 +158,7 @@ impl Field {
                methods.push(setter);
                
            },
-           ScalarField(ref name, length) => {
+           Field::ScalarField(ref name, length) => {
                let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
                let getter_name = "get_".to_string() + *name;
                let getter_ident = token::str_to_ident(getter_name.as_slice());
@@ -234,7 +234,7 @@ fn parse_field(parser: &mut Parser) -> Field {
           parser.span_fatal(span, "Field length must be > 0");
        }
        parser.expect(&token::CloseDelim(token::Bracket));
-       ArrayField {name: name,  element_length:  element_length as u8, count: count as uint}
+       Field::ArrayField {name: name,  element_length:  element_length as u8, count: count as uint}
     }
     else {
       //ScalarField
@@ -243,7 +243,7 @@ fn parse_field(parser: &mut Parser) -> Field {
           let span = parser.last_span;
           parser.span_fatal(span, "Field length must be > 0 and <= 64");
       }
-      ScalarField {name: name, length: length as u8}
+      Field::ScalarField {name: name, length: length as u8}
     }
 }
 
