@@ -111,7 +111,7 @@ impl Field {
            Field::ArrayField{ref name, count, element_length} => {
                let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                let value_type = make_array_ty(cx, &element_type, count);
-               let getter_name = "get_".to_string() + *name;
+               let getter_name = "get_".to_string() + (*name).as_slice();
                let getter_ident = token::str_to_ident(getter_name.as_slice());
                
                let mut element_getter_exprs = Vec::with_capacity(count);
@@ -132,7 +132,7 @@ impl Field {
                );
                methods.push(getter);
 
-               let setter_name = "set_".to_string() + *name;
+               let setter_name = "set_".to_string() + (*name).as_slice();
                let setter_ident = token::str_to_ident(setter_name.as_slice());
                let mut element_setter_stmts = Vec::new();
                for i in range(0, count) {
@@ -160,7 +160,7 @@ impl Field {
            },
            Field::ScalarField{ref name, length} => {
                let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
-               let getter_name = "get_".to_string() + *name;
+               let getter_name = "get_".to_string() + (*name).as_slice();
                let getter_ident = token::str_to_ident(getter_name.as_slice());
                let getter_expr = Field::gen_single_value_get_expr(cx, &value_type, start, length);
                let getter = quote_method!(cx,
@@ -170,7 +170,7 @@ impl Field {
                    }
                );
                methods.push(getter);
-               let setter_name = "set_".to_string() + *name;
+               let setter_name = "set_".to_string() + (*name).as_slice();
                let setter_ident = token::str_to_ident(setter_name.as_slice());
                let setter_stmt = Field::gen_single_value_set_stmt(cx, value_type_length, start, length);
                let setter = quote_method!(cx,
@@ -284,7 +284,7 @@ fn expand_bitfield(cx: &mut ExtCtxt, _sp: Span, tts: &[ast::TokenTree])
     
     //Put the methods we generated inside the impl block.
     let node = match node {
-        ast::ItemImpl(a, b, c, _) => ast::ItemImpl(a, b, c, methods),
+        ast::ItemImpl(a, b, c,d, _) => ast::ItemImpl(a, b, c, d, methods),
         _ => unreachable!()
     };
     
