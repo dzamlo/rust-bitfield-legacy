@@ -5,7 +5,7 @@ extern crate bitfield;
 
 use std::{u8, u16, u32, u64};
 
-bitfield!(BitfiedlTestStruct1,
+bitfield!{BitfiedlTestStruct1,
     aligned_u8: 8,
     aligned_u16: 16,
     aligned_u32: 32,
@@ -25,7 +25,7 @@ bitfield!(BitfiedlTestStruct1,
     unaligned_31 : 31,
     unaligned_33 : 33,
     unaligned_63 : 63,
-    )
+    }
     
 #[test]
 fn get_set_aligned() {
@@ -121,7 +121,7 @@ fn get_set_unaligned_nonwhole_size(){
    assert!(foo.get_unaligned_63() == 0x7FFFFFFFFFFFFFFF);
 }
 
-bitfield!(BitfiedlTestStruct2,
+bitfield!{BitfiedlTestStruct2,
     aligned_u8: [8, ..3],
     aligned_u16: [16, ..3],
     aligned_u32: [32, ..3],
@@ -141,7 +141,7 @@ bitfield!(BitfiedlTestStruct2,
     unaligned_31 : [31, ..3],
     unaligned_33 : [33, ..3],
     unaligned_63 : [63, ..3],
-    )
+    }
     
 #[test]
 fn get_set_aligned_array() {
@@ -237,9 +237,9 @@ fn get_set_unaligned_nonwhole_size_array(){
    assert!(foo.get_unaligned_63() == [42, 0, 0x7FFFFFFFFFFFFFFF]);
 }
 
-bitfield!(BitfiedlTestStruct3,
+bitfield!{BitfiedlTestStruct3,
     byte: [1, ..8],
-    )
+    }
     
 #[test]
 fn bits_pos() {
@@ -262,9 +262,9 @@ fn bits_pos() {
     assert!(foo.data[0] == 0b10101010);
 }
 
-bitfield!(BitfiedlTestStruct4,
+bitfield!{BitfiedlTestStruct4,
     value: 16,
-    )
+    }
 
 #[test]
 fn byte_order_16() {
@@ -281,9 +281,9 @@ fn byte_order_16() {
    assert!(foo.data == [0x34, 0x12]);
 }
 
-bitfield!(BitfiedlTestStruct5,
+bitfield!{BitfiedlTestStruct5,
     value: 32,
-    )
+    }
 
 #[test]
 fn byte_order_32() {
@@ -296,9 +296,9 @@ fn byte_order_32() {
    assert!(foo.data == [0xFE, 0xDC, 0xBA, 0x98]);
 }
 
-bitfield!(BitfiedlTestStruct6,
+bitfield!{BitfiedlTestStruct6,
     value: 64,
-    )
+    }
 
 #[test]
 fn byte_order_64() {
@@ -311,13 +311,13 @@ fn byte_order_64() {
    assert!(foo.data == [0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10]);
 }
 
-bitfield!(BitfiedlTestStruct7,
+bitfield!{BitfiedlTestStruct7,
     field1: 0x10,
     field2: 0o10,
     field3: 0b10,
     field4: 6_0,
     field5: [0xA, ..0b11],
-    )
+    }
 
 #[test]
 fn other_literal_form_for_fields_size() {

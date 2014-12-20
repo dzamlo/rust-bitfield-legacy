@@ -6,7 +6,7 @@ extern crate bitfield;
 
 use std::io::net::ip::{IpAddr, Ipv4Addr};
 
-bitfield!(IpV4Header,
+bitfield!{IpV4Header,
     version: 4,
     ihl: 4,
     dscp: 5,
@@ -22,7 +22,7 @@ bitfield!(IpV4Header,
     header_checksum: 16,
     source_address: [8, ..4],
     destination_address: [8, ..4], 
-    )
+    }
     
 impl IpV4Header {
     fn get_source_as_ip_addr(&self) -> IpAddr {
