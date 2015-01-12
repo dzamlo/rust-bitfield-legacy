@@ -1,4 +1,4 @@
-
+#![allow(unstable)]
 #![feature(plugin_registrar, quote)]
 
 extern crate syntax;
@@ -15,7 +15,7 @@ use syntax::parse::parser::Parser;
 use syntax::parse::token;
 use syntax::ptr::P;
 
-#[deriving(Show)]
+#[derive(Show)]
 enum Field {
    ArrayField {name: String, count: usize, element_length: u8},
    ScalarField {name: String, length: u8},   
@@ -285,7 +285,7 @@ fn expand_bitfield(cx: &mut ExtCtxt, _sp: Span, tts: &[ast::TokenTree])
     
     //Put the methods we generated inside the impl block.
     let node = match node {
-        ast::ItemImpl(a, b, c,d, _) => ast::ItemImpl(a, b, c, d, methods),
+        ast::ItemImpl(a, b, c, d, e, _) => ast::ItemImpl(a, b, c, d, e, methods),
         _ => unreachable!()
     };
     
