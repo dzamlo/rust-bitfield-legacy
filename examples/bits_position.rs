@@ -1,7 +1,6 @@
-#![feature(phase)]
 #![allow(dead_code)]
 
-#[phase(plugin)]
+#[plugin]
 extern crate bitfield;
 
 bitfield!{IpV4Header,

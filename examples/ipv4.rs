@@ -1,7 +1,6 @@
-#![feature(phase)]
 #![allow(dead_code)]
 
-#[phase(plugin)]
+#[plugin]
 extern crate bitfield;
 
 use std::io::net::ip::{IpAddr, Ipv4Addr};

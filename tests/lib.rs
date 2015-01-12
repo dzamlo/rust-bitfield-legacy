@@ -1,6 +1,4 @@
-#![feature(phase)]
-
-#[phase(plugin)]
+#[plugin]
 extern crate bitfield;
 
 use std::{u8, u16, u32, u64};
