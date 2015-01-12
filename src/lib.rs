@@ -1,3 +1,4 @@
+
 #![feature(plugin_registrar, quote)]
 
 extern crate syntax;
@@ -16,7 +17,7 @@ use syntax::ptr::P;
 
 #[deriving(Show)]
 enum Field {
-   ArrayField {name: String, count: uint, element_length: u8},
+   ArrayField {name: String, count: usize, element_length: u8},
    ScalarField {name: String, length: u8},   
 }
 
@@ -31,17 +32,17 @@ impl Field {
     
     fn gen_single_value_get_expr(cx: &mut ExtCtxt, value_type: &P<ast::Ty>, start: u64, length: u8) -> P<ast::Expr> {
         if length == 1 {
-            let byte_shift = (7-start%8) as uint;
-            quote_expr!(cx, (self.data[($start/8) as uint] & (0x1 << $byte_shift)) != 0)
+            let byte_shift = (7-start%8) as usize;
+            quote_expr!(cx, (self.data[($start/8) as usize] & (0x1 << $byte_shift)) != 0)
         } else {
             let mut value_expr = None;
             let mut bits_to_get = length;
             let mut bit_offset = start;
             while bits_to_get > 0 {
                 let can_get = std::cmp::min(bits_to_get, 8-(bit_offset%8) as u8);
-                let index = (bit_offset/8) as uint;
-                let mask = 0xFFu8 >> (8-can_get) as uint;
-                let byte_shift = (8-can_get-(bit_offset%8) as u8) as uint;
+                let index = (bit_offset/8) as usize;
+                let mask = 0xFFu8 >> (8-can_get) as usize;
+                let byte_shift = (8-can_get-(bit_offset%8) as u8) as usize;
                 let bits_expr = quote_expr!(cx, ((self.data[$index] >> $byte_shift) & $mask) as $value_type);
                 
                 value_expr = match value_expr {
@@ -49,7 +50,7 @@ impl Field {
                          // ExprParen should be a no-ops but it seem that the to_tokens used by quote_method 
                          // "flatten" the expression. ExprParen prevent this.
                          let expr = cx.expr(DUMMY_SP, ast::ExprParen(expr));
-                         let shifted = cx.expr_binary(DUMMY_SP, ast::BiShl, expr, cx.expr_uint(DUMMY_SP, can_get as uint));
+                         let shifted = cx.expr_binary(DUMMY_SP, ast::BiShl, expr, cx.expr_uint(DUMMY_SP, can_get as usize));
                          Some(cx.expr_binary(DUMMY_SP, ast::BiBitOr, shifted, bits_expr))
                      }
                      None => Some(bits_expr)
@@ -63,8 +64,8 @@ impl Field {
     
     fn gen_single_value_set_stmt(cx: &mut ExtCtxt, type_length: u8, start: u64, length: u8) -> P<ast::Stmt> {
         if length == 1 {
-            let mask = 0x1u8 << (7-start%8) as uint;
-            let index = (start/8) as uint;
+            let mask = 0x1u8 << (7-start%8) as usize;
+            let index = (start/8) as usize;
             quote_stmt!(cx, if value {self.data[$index] |= $mask} 
                             else {self.data[$index] &= !($mask)})
         } else {
@@ -72,24 +73,24 @@ impl Field {
             let mut bits_to_set = length;
             let mut bit_offset = start;
             
-            let mut value_shift = (start%8) as int - (type_length - length) as int + 8*(type_length/8-1) as int;
+            let mut value_shift = (start%8) as isize - (type_length - length) as isize + 8*(type_length/8-1) as isize;
 
             while bits_to_set > 0 {
                 let can_set = std::cmp::min(bits_to_set, 8-(bit_offset%8) as u8);
-                let index = (bit_offset/8) as uint;
+                let index = (bit_offset/8) as usize;
                 
                 // only bits set to 1 in the mask are modified
-                let mask = (0xFFu8 >> 8-can_set as uint) << (8-can_set-(bit_offset%8) as u8) as uint;
+                let mask = (0xFFu8 >> 8-can_set as usize) << (8-can_set-(bit_offset%8) as u8) as usize;
 
                 // positive value of value_shift means we want to shift to the right and
                 // negative value means we want shift to the left
                 if value_shift > 0 {
-                    let value_shift = value_shift as uint;
+                    let value_shift = value_shift as usize;
                     stmts.push(quote_stmt!(cx, self.data[$index] = 
                         (self.data[$index] & !$mask) | 
                         ((value >> $value_shift) as u8)& $mask));
                 } else {
-                    let value_shift = (-value_shift) as uint;
+                    let value_shift = (-value_shift) as usize;
                     stmts.push(quote_stmt!(cx, self.data[$index] = 
                         (self.data[$index] & !$mask) | 
                         ((value << $value_shift) as u8)& $mask));
@@ -187,7 +188,7 @@ impl Field {
     }
 }
 
-/// Return the smaller bool or uint type than can hold an amount of bits. Also return the size
+/// Return the smaller bool or unsigned int type than can hold an amount of bits. Also return the size
 /// of the type in bits.
 /// The size for the bool type is not releavant because it is never used.
 fn size_to_ty(cx: &mut ExtCtxt, size: u8) -> Option<(P<ast::Ty>, u8)> {
@@ -202,7 +203,7 @@ fn size_to_ty(cx: &mut ExtCtxt, size: u8) -> Option<(P<ast::Ty>, u8)> {
        }
 }
 
-fn make_array_ty(cx: &mut ExtCtxt, elements_type: &P<ast::Ty>, length: uint) -> P<ast::Ty> {
+fn make_array_ty(cx: &mut ExtCtxt, elements_type: &P<ast::Ty>, length: usize) -> P<ast::Ty> {
     quote_ty!(cx, [$elements_type, ..$length])
 }
 
@@ -211,7 +212,7 @@ fn parse_u64(parser: &mut Parser) -> u64 {
       let lit = parser.parse_lit();
       match lit.node {
           ast::LitInt(n, _) => n,
-          _ => parser.span_fatal(lit.span, "unsigned integer literal expected")
+          _ => parser.span_fatal(lit.span, "unsigned isizeeger literal expected")
       }
 }
 
@@ -234,7 +235,7 @@ fn parse_field(parser: &mut Parser) -> Field {
           parser.span_fatal(span, "Field length must be > 0");
        }
        parser.expect(&token::CloseDelim(token::Bracket));
-       Field::ArrayField {name: name,  element_length:  element_length as u8, count: count as uint}
+       Field::ArrayField {name: name,  element_length:  element_length as u8, count: count as usize}
     }
     else {
       //ScalarField
@@ -261,7 +262,7 @@ fn expand_bitfield(cx: &mut ExtCtxt, _sp: Span, tts: &[ast::TokenTree])
     let fields = parser.parse_seq_to_end(&token::Eof, sep, |p| parse_field(p));
 
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
-    let byte_length = ((bit_length+7)/8) as uint;
+    let byte_length = ((bit_length+7)/8) as usize;
     
     let struct_decl = quote_item!(cx, struct $struct_ident { data: [u8, ..$byte_length]};).unwrap();
      
