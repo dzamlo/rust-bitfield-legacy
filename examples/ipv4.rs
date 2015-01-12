@@ -1,3 +1,4 @@
+#![feature(plugin)]
 #![allow(dead_code)]
 
 #[plugin]
@@ -19,8 +20,8 @@ bitfield!{IpV4Header,
     time_to_live: 8,
     protocol: 8,
     header_checksum: 16,
-    source_address: [8, ..4],
-    destination_address: [8, ..4], 
+    source_address: [8; 4],
+    destination_address: [8; 4], 
     }
     
 impl IpV4Header {

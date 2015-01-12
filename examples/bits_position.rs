@@ -1,3 +1,4 @@
+#![feature(plugin)]
 #![allow(dead_code)]
 
 #[plugin]
@@ -10,7 +11,7 @@ bitfield!{IpV4Header,
     }
 
 fn main() {
-    let data = [0, ..3];
+    let data = [0; 3];
     
     let mut header = IpV4Header::new(data);
     header.set_field1(0x7f);

@@ -204,7 +204,7 @@ fn size_to_ty(cx: &mut ExtCtxt, size: u8) -> Option<(P<ast::Ty>, u8)> {
 }
 
 fn make_array_ty(cx: &mut ExtCtxt, elements_type: &P<ast::Ty>, length: usize) -> P<ast::Ty> {
-    quote_ty!(cx, [$elements_type, ..$length])
+    quote_ty!(cx, [$elements_type; $length])
 }
 
 
@@ -212,7 +212,7 @@ fn parse_u64(parser: &mut Parser) -> u64 {
       let lit = parser.parse_lit();
       match lit.node {
           ast::LitInt(n, _) => n,
-          _ => parser.span_fatal(lit.span, "unsigned isizeeger literal expected")
+          _ => parser.span_fatal(lit.span, "unsigned integer literal expected")
       }
 }
 
@@ -227,8 +227,7 @@ fn parse_field(parser: &mut Parser) -> Field {
            let span = parser.last_span;
            parser.span_fatal(span, "Field length must be > 0 and <= 64");
        }
-       parser.expect(&token::Comma);
-       parser.expect(&token::DotDot);
+       parser.expect(&token::Semi);
        let count = parse_u64(parser);
        if count == 0 {
           let span = parser.last_span;
@@ -264,12 +263,12 @@ fn expand_bitfield(cx: &mut ExtCtxt, _sp: Span, tts: &[ast::TokenTree])
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
     let byte_length = ((bit_length+7)/8) as usize;
     
-    let struct_decl = quote_item!(cx, struct $struct_ident { data: [u8, ..$byte_length]};).unwrap();
+    let struct_decl = quote_item!(cx, struct $struct_ident { data: [u8; $byte_length]};).unwrap();
      
     let mut methods = Vec::with_capacity(fields.len()*2+1);
     
     methods.push(ast::MethodImplItem(quote_method!(cx, 
-        fn new(data: [u8, ..$byte_length]) -> $struct_ident { 
+        fn new(data: [u8; $byte_length]) -> $struct_ident { 
             $struct_ident { data: data}
         })));
 
