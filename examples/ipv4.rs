@@ -4,7 +4,7 @@
 #[plugin]
 extern crate bitfield;
 
-use std::io::net::ip::{IpAddr, Ipv4Addr};
+use std::old_io::net::ip::{IpAddr, Ipv4Addr};
 
 bitfield!{IpV4Header,
     version: 4,
