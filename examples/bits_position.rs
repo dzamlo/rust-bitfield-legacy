@@ -1,8 +1,7 @@
 #![feature(plugin)]
 #![allow(dead_code)]
 
-#[plugin]
-extern crate bitfield;
+#![plugin(bitfield)]
 
 bitfield!{IpV4Header,
     field1: 7,
@@ -12,7 +11,7 @@ bitfield!{IpV4Header,
 
 fn main() {
     let data = [0; 3];
-    
+
     let mut header = IpV4Header::new(data);
     header.set_field1(0x7f);
     println!("Field 1 set to all 1:");
@@ -26,4 +25,3 @@ fn main() {
     println!("Field 3 set to all 1:");
     println!("[{:08b}, {:08b}, {:08b}]", header.data[0], header.data[1], header.data[2]);
 }
-
