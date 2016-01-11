@@ -25,19 +25,19 @@ bitfield!{IpV4Header,
 
 impl IpV4Header {
     fn get_source_as_ip_addr(&self) -> Ipv4Addr {
-       let src = self.get_source_address();
-       Ipv4Addr::new(src[0], src[1], src[2], src[3])
+        let src = self.get_source_address();
+        Ipv4Addr::new(src[0], src[1], src[2], src[3])
     }
 
     fn get_destination_as_ip_addr(&self) -> Ipv4Addr {
-       let dst = self.get_destination_address();
-       Ipv4Addr::new(dst[0], dst[1], dst[2], dst[3])
+        let dst = self.get_destination_address();
+        Ipv4Addr::new(dst[0], dst[1], dst[2], dst[3])
     }
 }
 
 fn main() {
-    let data = [0x45, 0x00, 0x00, 0x40, 0x69, 0x27, 0x40, 0x00, 0x40, 0x11,
-                0x4d, 0x0d, 0xc0, 0xa8, 0x01, 0x2a, 0xc0, 0xa8, 0x01, 0xfe];
+    let data = [0x45, 0x00, 0x00, 0x40, 0x69, 0x27, 0x40, 0x00, 0x40, 0x11, 0x4d, 0x0d, 0xc0,
+                0xa8, 0x01, 0x2a, 0xc0, 0xa8, 0x01, 0xfe];
 
     let header = IpV4Header::new(data);
 
@@ -49,5 +49,7 @@ fn main() {
     assert!(header.get_fragment_offset() == 0);
     assert!(header.get_protocol() == 0x11);
     assert!(header.get_source_address() == [192, 168, 1, 42]);
-    println!("from {} to {}", header.get_source_as_ip_addr(), header.get_destination_as_ip_addr());
+    println!("from {} to {}",
+             header.get_source_as_ip_addr(),
+             header.get_destination_as_ip_addr());
 }
