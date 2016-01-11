@@ -4,7 +4,7 @@ name = "bitfield"
 version = "0.0.1"
 authors = ["Loïc Damien <loic.damien@dzamlo.ch>"]
 repository = "https://github.com/dzamlo/rust-bitfield"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 description = "A procedural macro to generate bitfield-like stuct"
 
 [lib]
