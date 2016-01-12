@@ -281,10 +281,27 @@ fn parse_u64(parser: &mut Parser) -> u64 {
     }
 }
 
+macro_rules! expect_token {
+    ($parser:expr, $token:expr) => {
+        if let Err(mut e) = $parser.expect($token) {
+            e.emit();
+            $parser.bump().unwrap();
+        }
+    }
+}
+
 fn parse_field(parser: &mut Parser) -> Field {
-    let ident = parser.parse_ident().unwrap();
+    let ident = match parser.parse_ident() {
+        Ok(ident) => ident,
+        Err(mut e) => {
+            e.emit();
+            parser.abort_if_errors();
+            unreachable!();
+        }
+    };
     let name = ident.name.to_string();
-    parser.expect(&token::Colon);
+    expect_token!(parser, &token::Colon);
+
     if parser.eat(&token::OpenDelim(token::Bracket)).unwrap() {
         // ArrayField
         let mut element_length = parse_u64(parser);
@@ -294,14 +311,18 @@ fn parse_field(parser: &mut Parser) -> Field {
             // We set element_length to a dummy value, so we can continue parsing
             element_length = 1;
         }
-        parser.expect(&token::Semi);
+
+        expect_token!(parser, &token::Semi);
+
         let mut count = parse_u64(parser);
         if count == 0 {
             let span = parser.last_span;
             parser.span_err(span, "Elements count must be > 0");
             count = 1
         }
-        parser.expect(&token::CloseDelim(token::Bracket));
+
+        expect_token!(parser, &token::CloseDelim(token::Bracket));
+
         Field::ArrayField {
             name: name,
             element_length: element_length as u8,
@@ -328,16 +349,31 @@ fn expand_bitfield(cx: &mut ExtCtxt,
                    -> Box<MacResult + 'static> {
 
     let mut parser = cx.new_parser_from_tts(tts);
-    let struct_ident = parser.parse_ident().unwrap();
+    let struct_ident = match parser.parse_ident() {
+        Ok(ident) => ident,
+        Err(mut e) => {
+            e.emit();
+            parser.abort_if_errors();
+            unreachable!();
+        }
+    };
 
-    parser.expect(&token::Comma);
+    if let Err(mut e) = parser.expect(&token::Comma) {
+        e.emit();
+    }
 
     let sep = SeqSep {
         sep: Some(token::Comma),
         trailing_sep_allowed: true,
     };
 
-    let fields = parser.parse_seq_to_end(&token::Eof, sep, |p| Ok(parse_field(p))).unwrap();
+    let fields = match parser.parse_seq_to_end(&token::Eof, sep, |p| Ok(parse_field(p))) {
+        Ok(fields) => fields,
+        Err(mut e) => {
+            e.emit();
+            vec![]
+        }
+    };
 
     let mut items = Vec::with_capacity(fields.len() * 2 + 2);
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
