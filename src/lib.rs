@@ -263,10 +263,21 @@ fn make_array_ty(cx: &mut ExtCtxt, elements_type: &P<ast::Ty>, length: usize) ->
 }
 
 fn parse_u64(parser: &mut Parser) -> u64 {
-    let lit = parser.parse_lit().unwrap();
-    match lit.node {
-        ast::LitInt(n, _) => n,
-        _ => parser.span_bug(lit.span, "unsigned integer literal expected"),
+    let lit = parser.parse_lit();
+    match lit {
+        Ok(lit) => {
+            match lit.node {
+                ast::LitInt(n, _) => n,
+                _ => {
+                    parser.span_err(lit.span, "unsigned integer literal expected");
+                    1
+                }
+            }
+        }
+        Err(mut db) => {
+            db.emit();
+            1
+        }
     }
 }
 
@@ -276,16 +287,19 @@ fn parse_field(parser: &mut Parser) -> Field {
     parser.expect(&token::Colon);
     if parser.eat(&token::OpenDelim(token::Bracket)).unwrap() {
         // ArrayField
-        let element_length = parse_u64(parser);
+        let mut element_length = parse_u64(parser);
         if element_length == 0 || element_length > 64 {
             let span = parser.last_span;
-            parser.span_fatal(span, "Field length must be > 0 and <= 64");
+            parser.span_err(span, "Elements length must be > 0 and <= 64");
+            // We set element_length to a dummy value, so we can continue parsing
+            element_length = 1;
         }
         parser.expect(&token::Semi);
-        let count = parse_u64(parser);
+        let mut count = parse_u64(parser);
         if count == 0 {
             let span = parser.last_span;
-            parser.span_fatal(span, "Field length must be > 0");
+            parser.span_err(span, "Elements count must be > 0");
+            count = 1
         }
         parser.expect(&token::CloseDelim(token::Bracket));
         Field::ArrayField {
@@ -295,10 +309,11 @@ fn parse_field(parser: &mut Parser) -> Field {
         }
     } else {
         // ScalarField
-        let length = parse_u64(parser);
+        let mut length = parse_u64(parser);
         if length == 0 || length > 64 {
             let span = parser.last_span;
-            parser.span_fatal(span, "Field length must be > 0 and <= 64");
+            parser.span_err(span, "Field length must be > 0 and <= 64");
+            length = 1;
         }
         Field::ScalarField {
             name: name,
