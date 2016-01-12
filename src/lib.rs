@@ -285,7 +285,7 @@ macro_rules! expect_token {
     ($parser:expr, $token:expr) => {
         if let Err(mut e) = $parser.expect($token) {
             e.emit();
-            $parser.bump().unwrap();
+            $parser.bump();
         }
     }
 }
@@ -302,7 +302,7 @@ fn parse_field(parser: &mut Parser) -> Field {
     let name = ident.name.to_string();
     expect_token!(parser, &token::Colon);
 
-    if parser.eat(&token::OpenDelim(token::Bracket)).unwrap() {
+    if parser.eat(&token::OpenDelim(token::Bracket)) {
         // ArrayField
         let mut element_length = parse_u64(parser);
         if element_length == 0 || element_length > 64 {
