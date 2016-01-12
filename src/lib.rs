@@ -7,7 +7,6 @@ extern crate rustc_plugin;
 
 use rustc_plugin::Registry;
 use syntax::ast;
-use syntax::ast::ImplItem;
 use syntax::codemap::{DUMMY_SP, Span};
 use syntax::ext::base::{ExtCtxt, MacEager, MacResult};
 use syntax::ext::build::AstBuilder;
