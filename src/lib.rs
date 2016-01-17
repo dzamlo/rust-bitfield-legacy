@@ -34,9 +34,7 @@ enum Field {
 impl Field {
     fn bit_len(&self) -> u64 {
         match *self {
-            Field::ArrayField{count, element_length, ..} => {
-                (count as u64) * element_length as u64
-            }
+            Field::ArrayField{count, element_length, ..} => (count as u64) * element_length as u64,
             Field::ScalarField{length, ..} => length as u64,
         }
     }
