@@ -34,10 +34,10 @@ enum Field {
 impl Field {
     fn bit_len(&self) -> u64 {
         match *self {
-            Field::ArrayField{name: _, count, element_length} => {
+            Field::ArrayField{count, element_length, ..} => {
                 (count as u64) * element_length as u64
             }
-            Field::ScalarField{name: _, length} => length as u64,
+            Field::ScalarField{length, ..} => length as u64,
         }
     }
 
@@ -105,7 +105,7 @@ impl Field {
                 let index = (bit_offset / 8) as usize;
 
                 // only bits set to 1 in the mask are modified
-                let mask = (0xFFu8 >> 8 - can_set as usize) <<
+                let mask = (0xFFu8 >> (8 - can_set as usize)) <<
                            (8 - can_set - (bit_offset % 8) as u8) as usize;
 
                 // positive value of value_shift means we want to shift to the right and
@@ -146,7 +146,7 @@ impl Field {
 
                 let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                 let value_type = make_array_ty(cx, &element_type, count);
-                let getter_name = "get_".to_string() + &name[..];
+                let getter_name = "get_".to_owned() + &name[..];
                 let getter_ident = token::str_to_ident(&getter_name[..]);
 
                 let mut element_getter_exprs = Vec::with_capacity(count);
@@ -171,7 +171,7 @@ impl Field {
                                  .unwrap();
                 methods.push(getter);
 
-                let setter_name = "set_".to_string() + &name[..];
+                let setter_name = "set_".to_owned() + &name[..];
                 let setter_ident = token::str_to_ident(&setter_name[..]);
                 let mut element_setter_stmts = Vec::new();
                 for i in 0..count {
@@ -205,7 +205,7 @@ impl Field {
             Field::ScalarField{ref name, length} => {
 
                 let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
-                let getter_name = "get_".to_string() + &name[..];
+                let getter_name = "get_".to_owned() + &name[..];
                 let getter_ident = token::str_to_ident(&getter_name[..]);
                 let getter_expr = Field::gen_single_value_get_expr(cx, &value_type, start, length);
                 let getter = quote_item!(cx,
@@ -219,7 +219,7 @@ impl Field {
                                  .unwrap();
                 methods.push(getter);
 
-                let setter_name = "set_".to_string() + &name[..];
+                let setter_name = "set_".to_owned() + &name[..];
                 let setter_ident = token::str_to_ident(&setter_name[..]);
                 let setter_stmt = Field::gen_single_value_set_stmt(cx,
                                                                    value_type_length,
@@ -392,13 +392,13 @@ fn expand_bitfield(cx: &mut ExtCtxt,
     items.push(method_new);
 
     let mut field_start = 0;
-    for field in fields.iter() {
+    for field in fields {
         items.extend(field.to_methods(cx, struct_ident, field_start));
         field_start += field.bit_len();
     }
 
     let s = SmallVector::many(items);
-    return MacEager::items(s);
+    MacEager::items(s)
 }
 
 #[plugin_registrar]
