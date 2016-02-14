@@ -61,14 +61,11 @@ impl Field {
 
                 value_expr = match value_expr {
                     Some(expr) => {
-                        // ExprParen should be a no-ops but it seem that the to_tokens used by quote_method
-                        // "flatten" the expression. ExprParen prevent this.
-                        let expr = cx.expr(DUMMY_SP, ast::ExprParen(expr));
                         let shifted = cx.expr_binary(DUMMY_SP,
-                                                     ast::BiShl,
+                                                     ast::BinOpKind::Shl,
                                                      expr,
                                                      cx.expr_usize(DUMMY_SP, can_get as usize));
-                        Some(cx.expr_binary(DUMMY_SP, ast::BiBitOr, shifted, bits_expr))
+                        Some(cx.expr_binary(DUMMY_SP, ast::BinOpKind::BitOr, shifted, bits_expr))
                     }
                     None => Some(bits_expr),
                 };
@@ -87,9 +84,9 @@ impl Field {
         if length == 1 {
             let mask = 0x1u8 << (7 - start % 8) as usize;
             let index = (start / 8) as usize;
-            quote_stmt!(cx, if value {self.data[$index] |= $mask}
+            P(quote_stmt!(cx, if value {self.data[$index] |= $mask}
                             else {self.data[$index] &= !($mask)})
-                .unwrap()
+                  .unwrap())
         } else {
             let mut stmts = Vec::new();
             let mut bits_to_set = length;
@@ -127,8 +124,8 @@ impl Field {
                 value_shift -= 8;
             }
             let block = cx.block(DUMMY_SP, stmts, None);
-            let expr = cx.expr(DUMMY_SP, ast::ExprBlock(block));
-            cx.stmt_expr(expr)
+            let expr = cx.expr(DUMMY_SP, ast::ExprKind::Block(block));
+            P(cx.stmt_expr(expr))
         }
     }
 
@@ -185,7 +182,7 @@ impl Field {
 
 
                 let block = cx.block(DUMMY_SP, element_setter_stmts, None);
-                let expr = cx.expr(DUMMY_SP, ast::ExprBlock(block));
+                let expr = cx.expr(DUMMY_SP, ast::ExprKind::Block(block));
                 let setter_stmt = cx.stmt_expr(expr);
 
                 let setter = quote_item!(cx,
@@ -265,7 +262,7 @@ fn parse_u64(parser: &mut Parser) -> u64 {
     match lit {
         Ok(lit) => {
             match lit.node {
-                ast::LitInt(n, _) => n,
+                ast::LitKind::Int(n, _) => n,
                 _ => {
                     parser.span_err(lit.span, "unsigned integer literal expected");
                     1
