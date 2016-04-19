@@ -37,8 +37,10 @@ enum Field {
 impl Field {
     fn bit_len(&self) -> u64 {
         match *self {
-            Field::ArrayField{count, element_length, ..} => (count as u64) * element_length as u64,
-            Field::ScalarField{length, ..} => length as u64,
+            Field::ArrayField { count, element_length, .. } => {
+                (count as u64) * element_length as u64
+            }
+            Field::ScalarField { length, .. } => length as u64,
         }
     }
 
@@ -87,8 +89,10 @@ impl Field {
         if length == 1 {
             let mask = 0x1u8 << (7 - start % 8) as usize;
             let index = (start / 8) as usize;
-            P(quote_stmt!(cx, if value {self.data[$index] |= $mask}
-                            else {self.data[$index] &= !($mask)})
+            P(quote_stmt!(cx,
+                          if value {self.data[$index] |= $mask
+                          } else {self.data[$index] &= !($mask)
+                          })
                   .unwrap())
         } else {
             let mut stmts = Vec::new();
@@ -140,7 +144,7 @@ impl Field {
         let mut methods = vec![];
 
         match *self {
-            Field::ArrayField{ref name, count, element_length, is_pub} => {
+            Field::ArrayField { ref name, count, element_length, is_pub } => {
                 let maybe_pub = make_maybe_pub(is_pub);
                 let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                 let value_type = make_array_ty(cx, &element_type, count);
@@ -165,8 +169,7 @@ impl Field {
                           $getter_expr
                        }
                    }
-               )
-                                 .unwrap();
+                ).unwrap();
                 methods.push(getter);
 
                 let setter_name = "set_".to_owned() + &name[..];
@@ -178,8 +181,8 @@ impl Field {
                                                                 value_type_length,
                                                                 element_start,
                                                                 element_length);
-                    element_setter_stmts.push(quote_stmt!(cx, { let value = value[$i]; $stmt})
-                                                  .unwrap());
+                    element_setter_stmts.push(
+                        quote_stmt!(cx, { let value = value[$i]; $stmt}).unwrap());
                 }
 
 
@@ -195,12 +198,11 @@ impl Field {
                           $setter_stmt
                        }
                    }
-               )
-                                 .unwrap();
+                ).unwrap();
                 methods.push(setter);
 
             }
-            Field::ScalarField{ref name, length, is_pub} => {
+            Field::ScalarField { ref name, length, is_pub } => {
                 let maybe_pub = make_maybe_pub(is_pub);
                 let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
                 let getter_name = "get_".to_owned() + &name[..];
@@ -213,8 +215,7 @@ impl Field {
                           $getter_expr
                        }
                    }
-               )
-                                 .unwrap();
+                ).unwrap();
                 methods.push(getter);
 
                 let setter_name = "set_".to_owned() + &name[..];
@@ -230,8 +231,7 @@ impl Field {
                           $setter_stmt
                        }
                    }
-               )
-                                 .unwrap();
+                ).unwrap();
                 methods.push(setter);
 
             }
@@ -389,7 +389,8 @@ fn expand_bitfield(cx: &mut ExtCtxt,
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
     let byte_length = ((bit_length + 7) / 8) as usize;
     let maybe_pub = make_maybe_pub(is_pub);
-    let struct_decl = quote_item!(cx, $maybe_pub struct $struct_ident { data: [u8; $byte_length]};).unwrap();
+    let struct_decl = quote_item!(cx, $maybe_pub struct $struct_ident { data: [u8; $byte_length]};)
+                          .unwrap();
     items.push(struct_decl);
 
     let method_new = quote_item!(cx,
@@ -398,8 +399,7 @@ fn expand_bitfield(cx: &mut ExtCtxt,
                $struct_ident { data: data}
            }
         }
-    )
-                         .unwrap();
+    ).unwrap();
     items.push(method_new);
 
     let mut field_start = 0;
