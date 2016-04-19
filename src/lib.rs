@@ -20,13 +20,13 @@ use syntax::util::small_vector::SmallVector;
 
 
 enum Field {
-    ArrayField {
+    Array {
         name: String,
         count: usize,
         element_length: u8,
         is_pub: bool,
     },
-    ScalarField {
+    Scalar {
         name: String,
         length: u8,
         is_pub: bool,
@@ -37,10 +37,10 @@ enum Field {
 impl Field {
     fn bit_len(&self) -> u64 {
         match *self {
-            Field::ArrayField { count, element_length, .. } => {
+            Field::Array { count, element_length, .. } => {
                 (count as u64) * element_length as u64
             }
-            Field::ScalarField { length, .. } => length as u64,
+            Field::Scalar { length, .. } => length as u64,
         }
     }
 
@@ -144,7 +144,7 @@ impl Field {
         let mut methods = vec![];
 
         match *self {
-            Field::ArrayField { ref name, count, element_length, is_pub } => {
+            Field::Array { ref name, count, element_length, is_pub } => {
                 let maybe_pub = make_maybe_pub(is_pub);
                 let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                 let value_type = make_array_ty(cx, &element_type, count);
@@ -202,7 +202,7 @@ impl Field {
                 methods.push(setter);
 
             }
-            Field::ScalarField { ref name, length, is_pub } => {
+            Field::Scalar { ref name, length, is_pub } => {
                 let maybe_pub = make_maybe_pub(is_pub);
                 let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
                 let getter_name = "get_".to_owned() + &name[..];
@@ -310,7 +310,7 @@ fn parse_field(parser: &mut Parser) -> Field {
     expect_token!(parser, &token::Colon);
 
     if parser.eat(&token::OpenDelim(token::Bracket)) {
-        // ArrayField
+        // Field::Array
         let mut element_length = parse_u64(parser);
         if element_length == 0 || element_length > 64 {
             let span = parser.last_span;
@@ -330,21 +330,21 @@ fn parse_field(parser: &mut Parser) -> Field {
 
         expect_token!(parser, &token::CloseDelim(token::Bracket));
 
-        Field::ArrayField {
+        Field::Array {
             name: name,
             element_length: element_length as u8,
             count: count as usize,
             is_pub: is_pub,
         }
     } else {
-        // ScalarField
+        // Field::Scalar
         let mut length = parse_u64(parser);
         if length == 0 || length > 64 {
             let span = parser.last_span;
             parser.span_err(span, "Field length must be > 0 and <= 64");
             length = 1;
         }
-        Field::ScalarField {
+        Field::Scalar {
             name: name,
             length: length as u8,
             is_pub: is_pub,
