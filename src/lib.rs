@@ -14,6 +14,7 @@ use syntax::ext::quote::rt::ToTokens;
 use syntax::parse::common::SeqSep;
 use syntax::parse::parser::Parser;
 use syntax::parse::token;
+use syntax::parse::token::keywords;
 use syntax::ptr::P;
 use syntax::util::small_vector::SmallVector;
 
@@ -23,10 +24,12 @@ enum Field {
         name: String,
         count: usize,
         element_length: u8,
+        is_pub: bool,
     },
     ScalarField {
         name: String,
         length: u8,
+        is_pub: bool,
     },
 }
 
@@ -137,8 +140,8 @@ impl Field {
         let mut methods = vec![];
 
         match *self {
-            Field::ArrayField{ref name, count, element_length} => {
-
+            Field::ArrayField{ref name, count, element_length, is_pub} => {
+                let maybe_pub = make_maybe_pub(is_pub);
                 let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                 let value_type = make_array_ty(cx, &element_type, count);
                 let getter_name = "get_".to_owned() + &name[..];
@@ -158,7 +161,7 @@ impl Field {
                 let getter = quote_item!(cx,
                    impl $struct_ident {
                        #[inline]
-                       fn $getter_ident(&self) -> $value_type {
+                       $maybe_pub fn $getter_ident(&self) -> $value_type {
                           $getter_expr
                        }
                    }
@@ -188,7 +191,7 @@ impl Field {
                 let setter = quote_item!(cx,
                    impl $struct_ident {
                        #[inline]
-                       fn $setter_ident(&mut self, value: $value_type) {
+                       $maybe_pub fn $setter_ident(&mut self, value: $value_type) {
                           $setter_stmt
                        }
                    }
@@ -197,8 +200,8 @@ impl Field {
                 methods.push(setter);
 
             }
-            Field::ScalarField{ref name, length} => {
-
+            Field::ScalarField{ref name, length, is_pub} => {
+                let maybe_pub = make_maybe_pub(is_pub);
                 let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
                 let getter_name = "get_".to_owned() + &name[..];
                 let getter_ident = token::str_to_ident(&getter_name[..]);
@@ -206,7 +209,7 @@ impl Field {
                 let getter = quote_item!(cx,
                    impl $struct_ident {
                        #[inline]
-                       fn $getter_ident(&self) -> $value_type {
+                       $maybe_pub fn $getter_ident(&self) -> $value_type {
                           $getter_expr
                        }
                    }
@@ -223,7 +226,7 @@ impl Field {
                 let setter = quote_item!(cx,
                    impl $struct_ident {
                        #[inline]
-                       fn $setter_ident(&mut self, value: $value_type) {
+                       $maybe_pub fn $setter_ident(&mut self, value: $value_type) {
                           $setter_stmt
                        }
                    }
@@ -257,6 +260,14 @@ fn make_array_ty(cx: &mut ExtCtxt, elements_type: &P<ast::Ty>, length: usize) ->
     quote_ty!(cx, [$elements_type; $length])
 }
 
+fn make_maybe_pub(is_pub: bool) -> Option<syntax::ast::Ident> {
+    if is_pub {
+        Some(token::str_to_ident("pub"))
+    } else {
+        None
+    }
+}
+
 fn parse_u64(parser: &mut Parser) -> u64 {
     let lit = parser.parse_lit();
     match lit {
@@ -286,6 +297,7 @@ macro_rules! expect_token {
 }
 
 fn parse_field(parser: &mut Parser) -> Field {
+    let is_pub = parser.eat_keyword(keywords::Pub);
     let ident = match parser.parse_ident() {
         Ok(ident) => ident,
         Err(mut e) => {
@@ -322,6 +334,7 @@ fn parse_field(parser: &mut Parser) -> Field {
             name: name,
             element_length: element_length as u8,
             count: count as usize,
+            is_pub: is_pub,
         }
     } else {
         // ScalarField
@@ -334,6 +347,7 @@ fn parse_field(parser: &mut Parser) -> Field {
         Field::ScalarField {
             name: name,
             length: length as u8,
+            is_pub: is_pub,
         }
     }
 }
@@ -344,6 +358,7 @@ fn expand_bitfield(cx: &mut ExtCtxt,
                    -> Box<MacResult + 'static> {
 
     let mut parser = cx.new_parser_from_tts(tts);
+    let is_pub = parser.eat_keyword(keywords::Pub);
     let struct_ident = match parser.parse_ident() {
         Ok(ident) => ident,
         Err(mut e) => {
@@ -373,12 +388,13 @@ fn expand_bitfield(cx: &mut ExtCtxt,
     let mut items = Vec::with_capacity(fields.len() * 2 + 2);
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
     let byte_length = ((bit_length + 7) / 8) as usize;
-    let struct_decl = quote_item!(cx, struct $struct_ident { data: [u8; $byte_length]};).unwrap();
+    let maybe_pub = make_maybe_pub(is_pub);
+    let struct_decl = quote_item!(cx, $maybe_pub struct $struct_ident { data: [u8; $byte_length]};).unwrap();
     items.push(struct_decl);
 
     let method_new = quote_item!(cx,
        impl $struct_ident {
-           fn new(data: [u8; $byte_length]) -> $struct_ident {
+           $maybe_pub fn new(data: [u8; $byte_length]) -> $struct_ident {
                $struct_ident { data: data}
            }
         }
