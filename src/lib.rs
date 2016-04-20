@@ -7,6 +7,7 @@ extern crate rustc_plugin;
 
 use rustc_plugin::Registry;
 use syntax::ast;
+use syntax::ast::Attribute;
 use syntax::codemap::{DUMMY_SP, Span};
 use syntax::ext::base::{ExtCtxt, MacEager, MacResult};
 use syntax::ext::build::AstBuilder;
@@ -25,11 +26,13 @@ enum Field {
         count: usize,
         element_length: u8,
         is_pub: bool,
+        attrs: Vec<Attribute>,
     },
     Scalar {
         name: String,
         length: u8,
         is_pub: bool,
+        attrs: Vec<Attribute>,
     },
 }
 
@@ -144,7 +147,7 @@ impl Field {
         let mut methods = vec![];
 
         match *self {
-            Field::Array { ref name, count, element_length, is_pub } => {
+            Field::Array { ref name, count, element_length, is_pub , ref attrs} => {
                 let maybe_pub = make_maybe_pub(is_pub);
                 let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                 let value_type = make_array_ty(cx, &element_type, count);
@@ -170,6 +173,7 @@ impl Field {
                        }
                    }
                 ).unwrap();
+                let getter = set_attrs_method(getter, attrs);
                 methods.push(getter);
 
                 let setter_name = "set_".to_owned() + &name[..];
@@ -199,10 +203,11 @@ impl Field {
                        }
                    }
                 ).unwrap();
+                let setter = set_attrs_method(setter, attrs);
                 methods.push(setter);
 
             }
-            Field::Scalar { ref name, length, is_pub } => {
+            Field::Scalar { ref name, length, is_pub, ref attrs } => {
                 let maybe_pub = make_maybe_pub(is_pub);
                 let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
                 let getter_name = "get_".to_owned() + &name[..];
@@ -216,6 +221,7 @@ impl Field {
                        }
                    }
                 ).unwrap();
+                let getter = set_attrs_method(getter, attrs);
                 methods.push(getter);
 
                 let setter_name = "set_".to_owned() + &name[..];
@@ -232,6 +238,7 @@ impl Field {
                        }
                    }
                 ).unwrap();
+                let setter = set_attrs_method(setter, attrs);
                 methods.push(setter);
 
             }
@@ -297,6 +304,7 @@ macro_rules! expect_token {
 }
 
 fn parse_field(parser: &mut Parser) -> Field {
+    let attrs = parser.parse_outer_attributes().unwrap();
     let is_pub = parser.eat_keyword(keywords::Pub);
     let ident = match parser.parse_ident() {
         Ok(ident) => ident,
@@ -335,6 +343,7 @@ fn parse_field(parser: &mut Parser) -> Field {
             element_length: element_length as u8,
             count: count as usize,
             is_pub: is_pub,
+            attrs: attrs,
         }
     } else {
         // Field::Scalar
@@ -348,8 +357,20 @@ fn parse_field(parser: &mut Parser) -> Field {
             name: name,
             length: length as u8,
             is_pub: is_pub,
+            attrs: attrs,
         }
     }
+}
+
+fn set_attrs_method(method: P<ast::Item>, attrs: &[Attribute]) -> P<ast::Item> {
+    method.map(|mut method| {
+        if let ast::ItemKind::Impl(_, _, _, _, _, ref mut impl_items) = method.node {
+            impl_items[0].attrs = attrs.to_vec();
+        } else {
+            unreachable!();
+        }
+        method
+    })
 }
 
 fn expand_bitfield(cx: &mut ExtCtxt,
