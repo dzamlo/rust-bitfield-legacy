@@ -395,8 +395,10 @@ fn expand_bitfield(cx: &mut ExtCtxt,
     let struct_decl = struct_decl.map(|mut s| {s.attrs = attrs; s});
     items.push(struct_decl);
 
+    let new_doc = format!("Creates a new `{}`", struct_ident);
     let method_new = quote_item!(cx,
        impl $struct_ident {
+           #[doc = $new_doc]
            $maybe_pub fn new(data: [u8; $byte_length]) -> $struct_ident {
                $struct_ident { data: data}
            }
