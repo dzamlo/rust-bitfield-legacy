@@ -1,16 +1,23 @@
 #![feature(plugin)]
 #![allow(dead_code)]
 #![plugin(bitfield)]
+#![deny(missing_docs)]
 
-// You can use the same attributes as for structs.
-// The attributes only apply to the struct declaration, not the impl/methods
+//! You can use the same attributes as for `struct`s.
+//! The attributes only apply to the struct declaration, not the impl/methods
+//!
+//! You can also set attributes for each field.
+//! They will apply to the getter and setter methods.
+
 bitfield!{
     /// You can put documentation comments
     #[derive(Debug, Clone)]
     #[allow(non_camel_case_types)]
     pub demo_attrs,
-    field1: 3,
-    field2: 10,
+    /// The first field
+    pub field1: 3,
+    #[allow(missing_docs)]
+    pub field2: 10,
 }
 
 fn main() {
