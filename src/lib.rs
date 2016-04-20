@@ -358,6 +358,7 @@ fn expand_bitfield(cx: &mut ExtCtxt,
                    -> Box<MacResult + 'static> {
 
     let mut parser = cx.new_parser_from_tts(tts);
+    let attrs = parser.parse_outer_attributes().unwrap();
     let is_pub = parser.eat_keyword(keywords::Pub);
     let struct_ident = match parser.parse_ident() {
         Ok(ident) => ident,
@@ -391,6 +392,7 @@ fn expand_bitfield(cx: &mut ExtCtxt,
     let maybe_pub = make_maybe_pub(is_pub);
     let struct_decl = quote_item!(cx, $maybe_pub struct $struct_ident { data: [u8; $byte_length]};)
                           .unwrap();
+    let struct_decl = struct_decl.map(|mut s| {s.attrs = attrs; s});
     items.push(struct_decl);
 
     let method_new = quote_item!(cx,
