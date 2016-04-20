@@ -18,10 +18,14 @@ bitfield!{
     pub field1: 3,
     #[allow(missing_docs)]
     pub field2: 10,
+    /// The third field
+    pub field3: [2; 4],
+    #[allow(missing_docs)]
+    pub field4: [2; 7],
 }
 
 fn main() {
-    let mut foo = demo_attrs::new([0, 0]);
+    let mut foo = demo_attrs::new([0; 5]);
     let bar = foo.clone();
     foo.set_field1(5);
     println!("foo: {:?}", foo);
