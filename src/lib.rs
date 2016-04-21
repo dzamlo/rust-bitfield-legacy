@@ -373,6 +373,33 @@ fn set_attrs_method(method: P<ast::Item>, attrs: &[Attribute]) -> P<ast::Item> {
     })
 }
 
+fn get_impl_items(item: P<ast::Item>) -> Vec<ast::ImplItem> {
+    item.and_then(|item| {
+        if let ast::ItemKind::Impl(_, _, _, _, _, impl_items) = item.node {
+            return impl_items;
+        } else {
+            unreachable!();
+        }
+    })
+}
+
+fn merge_impls(methods: Vec<P<syntax::ast::Item>>) -> P<syntax::ast::Item> {
+    let mut methods = methods;
+    let impl_block = methods.pop().unwrap();
+    let mut methods_impl_items = vec![];
+    for method in methods {
+        methods_impl_items.extend(get_impl_items(method));
+    }
+    impl_block.map(|mut item| {
+        if let ast::ItemKind::Impl(_, _, _, _, _, ref mut impl_items) = item.node {
+            impl_items.extend(methods_impl_items);
+        } else {
+            unreachable!();
+        }
+        item
+    })
+}
+
 fn expand_bitfield(cx: &mut ExtCtxt,
                    _sp: Span,
                    tts: &[ast::TokenTree])
@@ -407,14 +434,13 @@ fn expand_bitfield(cx: &mut ExtCtxt,
         }
     };
 
-    let mut items = Vec::with_capacity(fields.len() * 2 + 2);
+    let mut methods = Vec::with_capacity(fields.len() * 2 + 1);
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
     let byte_length = ((bit_length + 7) / 8) as usize;
     let maybe_pub = make_maybe_pub(is_pub);
     let struct_decl = quote_item!(cx, $maybe_pub struct $struct_ident { data: [u8; $byte_length]};)
                           .unwrap();
     let struct_decl = struct_decl.map(|mut s| {s.attrs = attrs; s});
-    items.push(struct_decl);
 
     let new_doc = format!("Creates a new `{}`", struct_ident);
     let method_new = quote_item!(cx,
@@ -425,14 +451,16 @@ fn expand_bitfield(cx: &mut ExtCtxt,
            }
         }
     ).unwrap();
-    items.push(method_new);
+    methods.push(method_new);
 
     let mut field_start = 0;
     for field in fields {
-        items.extend(field.to_methods(cx, struct_ident, field_start));
+        methods.extend(field.to_methods(cx, struct_ident, field_start));
         field_start += field.bit_len();
     }
 
+    let methods = merge_impls(methods);
+    let items = vec![struct_decl, methods];
     let s = SmallVector::many(items);
     MacEager::items(s)
 }
