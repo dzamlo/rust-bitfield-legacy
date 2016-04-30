@@ -438,20 +438,25 @@ fn expand_bitfield(cx: &mut ExtCtxt,
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
     let byte_length = ((bit_length + 7) / 8) as usize;
     let maybe_pub = make_maybe_pub(is_pub);
-    let struct_decl = quote_item!(cx, $maybe_pub struct $struct_ident { data: [u8; $byte_length]};)
-                          .unwrap();
-    let struct_decl = struct_decl.map(|mut s| {s.attrs = attrs; s});
-
-    let new_doc = format!("Creates a new `{}`", struct_ident);
-    let method_new = quote_item!(cx,
-       impl $struct_ident {
-           #[doc = $new_doc]
-           $maybe_pub fn new(data: [u8; $byte_length]) -> $struct_ident {
-               $struct_ident { data: data}
-           }
-        }
-    ).unwrap();
-    methods.push(method_new);
+    let struct_decl = if byte_length > 0 {
+        let new_doc = format!("Creates a new `{}`", struct_ident);
+        let method_new = quote_item!(cx,
+            impl $struct_ident {
+                #[doc = $new_doc]
+                $maybe_pub fn new(data: [u8; $byte_length]) -> $struct_ident {
+                    $struct_ident { data: data}
+                }
+            }
+        ).unwrap();
+        methods.push(method_new);
+        quote_item!(cx, $maybe_pub struct $struct_ident { data: [u8; $byte_length]};).unwrap()
+    } else {
+        quote_item!(cx, $maybe_pub struct $struct_ident { };).unwrap()
+    };
+    let struct_decl = struct_decl.map(|mut s| {
+        s.attrs = attrs;
+        s
+    });
 
     let mut field_start = 0;
     for field in fields {
@@ -459,8 +464,11 @@ fn expand_bitfield(cx: &mut ExtCtxt,
         field_start += field.bit_len();
     }
 
-    let methods = merge_impls(methods);
-    let items = vec![struct_decl, methods];
+    let items = if methods.len() > 0 {
+        vec![struct_decl, merge_impls(methods)]
+    } else {
+        vec![struct_decl]
+    };
     let s = SmallVector::many(items);
     MacEager::items(s)
 }
