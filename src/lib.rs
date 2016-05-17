@@ -1,4 +1,3 @@
-#![crate_type="dylib"]
 #![feature(plugin_registrar, rustc_private, quote)]
 
 extern crate syntax;
@@ -11,7 +10,6 @@ use syntax::ast::Attribute;
 use syntax::codemap::{DUMMY_SP, Span};
 use syntax::ext::base::{ExtCtxt, MacEager, MacResult};
 use syntax::ext::build::AstBuilder;
-use syntax::ext::quote::rt::ToTokens;
 use syntax::parse::common::SeqSep;
 use syntax::parse::parser::Parser;
 use syntax::parse::token;
@@ -464,7 +462,7 @@ fn expand_bitfield(cx: &mut ExtCtxt,
         field_start += field.bit_len();
     }
 
-    let items = if methods.len() > 0 {
+    let items = if !methods.is_empty() {
         vec![struct_decl, merge_impls(methods)]
     } else {
         vec![struct_decl]
