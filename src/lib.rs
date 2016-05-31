@@ -265,12 +265,16 @@ fn make_array_ty(cx: &mut ExtCtxt, elements_type: &P<ast::Ty>, length: usize) ->
     quote_ty!(cx, [$elements_type; $length])
 }
 
-fn make_maybe_pub(is_pub: bool) -> Option<syntax::ast::Ident> {
-    if is_pub {
-        Some(token::str_to_ident("pub"))
+fn make_maybe_ident(maybe: bool, ident: &str) -> Option<syntax::ast::Ident> {
+    if maybe {
+        Some(token::str_to_ident(ident))
     } else {
         None
     }
+}
+
+fn make_maybe_pub(is_pub: bool) -> Option<syntax::ast::Ident> {
+    make_maybe_ident(is_pub, "pub")
 }
 
 fn parse_u64(parser: &mut Parser) -> u64 {
@@ -432,22 +436,47 @@ fn expand_bitfield(cx: &mut ExtCtxt,
         }
     };
 
+    let mut const_new = false;
+    let mut pub_data = false;
+    let attrs = attrs.into_iter()
+                     .filter(|a| {
+                         match a.node.value.node {
+                             ast::MetaItemKind::Word(ref w) => {
+                                 match &w[..] {
+                                     "const_new" => {
+                                         const_new = true;
+                                         false
+                                     }
+                                     "pub_data" => {
+                                         pub_data = true;
+                                         false
+                                     }
+                                     _ => true,
+                                 }
+                             }
+                             _ => true,
+                         }
+                     })
+                     .collect();
+
     let mut methods = Vec::with_capacity(fields.len() * 2 + 1);
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
     let byte_length = ((bit_length + 7) / 8) as usize;
     let maybe_pub = make_maybe_pub(is_pub);
+    let maybe_pub_data = make_maybe_pub(pub_data);
+    let maybe_const_new = make_maybe_ident(const_new, "const");
     let struct_decl = if byte_length > 0 {
         let new_doc = format!("Creates a new `{}`", struct_ident);
         let method_new = quote_item!(cx,
             impl $struct_ident {
                 #[doc = $new_doc]
-                $maybe_pub fn new(data: [u8; $byte_length]) -> $struct_ident {
+                $maybe_pub $maybe_const_new fn new(data: [u8; $byte_length]) -> $struct_ident {
                     $struct_ident { data: data}
                 }
             }
         ).unwrap();
         methods.push(method_new);
-        quote_item!(cx, $maybe_pub struct $struct_ident { data: [u8; $byte_length]};).unwrap()
+        quote_item!(cx, $maybe_pub struct $struct_ident { $maybe_pub_data data: [u8; $byte_length]};).unwrap()
     } else {
         quote_item!(cx, $maybe_pub struct $struct_ident { };).unwrap()
     };
