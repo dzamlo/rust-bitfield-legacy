@@ -12,28 +12,28 @@ use std;
 use misc::make_maybe_pub;
 use misc::set_attrs_method;
 
-pub enum Field {
+pub enum FieldSize {
     Array {
-        name: String,
         count: usize,
         element_length: u8,
-        is_pub: bool,
-        attrs: Vec<Attribute>,
     },
     Scalar {
-        name: String,
         length: u8,
-        is_pub: bool,
-        attrs: Vec<Attribute>,
     },
 }
 
+pub struct Field {
+    name: String,
+    is_pub: bool,
+    attrs: Vec<Attribute>,
+    size: FieldSize,
+}
 
 impl Field {
     pub fn bit_len(&self) -> u64 {
-        match *self {
-            Field::Array { count, element_length, .. } => (count as u64) * element_length as u64,
-            Field::Scalar { length, .. } => length as u64,
+        match self.size {
+            FieldSize::Array { count, element_length } => (count as u64) * element_length as u64,
+            FieldSize::Scalar { length } => length as u64,
         }
     }
 
@@ -135,14 +135,16 @@ impl Field {
                       start: u64)
                       -> Vec<P<ast::Item>> {
         let mut methods = vec![];
+        let maybe_pub = make_maybe_pub(self.is_pub);
+        let getter_name = "get_".to_owned() + &self.name;
+        let getter_ident = token::str_to_ident(&getter_name);
+        let setter_name = "set_".to_owned() + &self.name;
+        let setter_ident = token::str_to_ident(&setter_name);
 
-        match *self {
-            Field::Array { ref name, count, element_length, is_pub, ref attrs } => {
-                let maybe_pub = make_maybe_pub(is_pub);
+        let (getter_expr, setter_stmt, value_type) = match self.size {
+            FieldSize::Array { count, element_length } => {
                 let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                 let value_type = make_array_ty(cx, &element_type, count);
-                let getter_name = "get_".to_owned() + &name[..];
-                let getter_ident = token::str_to_ident(&getter_name[..]);
 
                 let mut element_getter_exprs = Vec::with_capacity(count);
                 for i in 0..count {
@@ -155,19 +157,6 @@ impl Field {
 
                 let getter_expr = cx.expr_vec(DUMMY_SP, element_getter_exprs);
 
-                let getter = quote_item!(cx,
-                   impl $struct_ident {
-                       #[inline]
-                       $maybe_pub fn $getter_ident(&self) -> $value_type {
-                          $getter_expr
-                       }
-                   }
-                ).unwrap();
-                let getter = set_attrs_method(getter, attrs);
-                methods.push(getter);
-
-                let setter_name = "set_".to_owned() + &name[..];
-                let setter_ident = token::str_to_ident(&setter_name[..]);
                 let mut element_setter_stmts = Vec::new();
                 for i in 0..count {
                     let element_start = start + (i as u64) * (element_length as u64);
@@ -184,55 +173,41 @@ impl Field {
                 let block = cx.block(DUMMY_SP, element_setter_stmts, None);
                 let expr = cx.expr(DUMMY_SP, ast::ExprKind::Block(block));
                 let setter_stmt = cx.stmt_expr(expr);
-
-                let setter = quote_item!(cx,
-                   impl $struct_ident {
-                       #[inline]
-                       $maybe_pub fn $setter_ident(&mut self, value: $value_type) {
-                          $setter_stmt
-                       }
-                   }
-                ).unwrap();
-                let setter = set_attrs_method(setter, attrs);
-                methods.push(setter);
+                (getter_expr, setter_stmt, value_type)
 
             }
-            Field::Scalar { ref name, length, is_pub, ref attrs } => {
-                let maybe_pub = make_maybe_pub(is_pub);
+            FieldSize::Scalar { length } => {
                 let (value_type, value_type_length) = size_to_ty(cx, length).unwrap();
-                let getter_name = "get_".to_owned() + &name[..];
-                let getter_ident = token::str_to_ident(&getter_name[..]);
                 let getter_expr = Field::gen_single_value_get_expr(cx, &value_type, start, length);
-                let getter = quote_item!(cx,
-                   impl $struct_ident {
-                       #[inline]
-                       $maybe_pub fn $getter_ident(&self) -> $value_type {
-                          $getter_expr
-                       }
-                   }
-                ).unwrap();
-                let getter = set_attrs_method(getter, attrs);
-                methods.push(getter);
-
-                let setter_name = "set_".to_owned() + &name[..];
-                let setter_ident = token::str_to_ident(&setter_name[..]);
                 let setter_stmt = Field::gen_single_value_set_stmt(cx,
                                                                    value_type_length,
                                                                    start,
                                                                    length);
-                let setter = quote_item!(cx,
-                   impl $struct_ident {
-                       #[inline]
-                       $maybe_pub fn $setter_ident(&mut self, value: $value_type) {
-                          $setter_stmt
-                       }
-                   }
-                ).unwrap();
-                let setter = set_attrs_method(setter, attrs);
-                methods.push(setter);
-
+                (getter_expr, setter_stmt.unwrap(), value_type)
             }
-        }
+        };
+
+        let getter = quote_item!(cx,
+           impl $struct_ident {
+               #[inline]
+               $maybe_pub fn $getter_ident(&self) -> $value_type {
+                  $getter_expr
+               }
+           }
+        ).unwrap();
+        let getter = set_attrs_method(getter, &self.attrs);
+        methods.push(getter);
+
+        let setter = quote_item!(cx,
+           impl $struct_ident {
+               #[inline]
+               $maybe_pub fn $setter_ident(&mut self, value: $value_type) {
+                  $setter_stmt
+               }
+           }
+        ).unwrap();
+        let setter = set_attrs_method(setter, &self.attrs);
+        methods.push(setter);
 
         methods
     }
@@ -281,7 +256,7 @@ pub fn parse_field(parser: &mut Parser) -> Field {
     let name = ident.name.to_string();
     expect_token!(parser, &token::Colon);
 
-    if parser.eat(&token::OpenDelim(token::Bracket)) {
+    let size = if parser.eat(&token::OpenDelim(token::Bracket)) {
         // Field::Array
         let mut element_length = parse_u64(parser);
         if element_length == 0 || element_length > 64 {
@@ -302,12 +277,9 @@ pub fn parse_field(parser: &mut Parser) -> Field {
 
         expect_token!(parser, &token::CloseDelim(token::Bracket));
 
-        Field::Array {
-            name: name,
+        FieldSize::Array {
             element_length: element_length as u8,
             count: count as usize,
-            is_pub: is_pub,
-            attrs: attrs,
         }
     } else {
         // Field::Scalar
@@ -317,12 +289,14 @@ pub fn parse_field(parser: &mut Parser) -> Field {
             parser.span_err(span, "Field length must be > 0 and <= 64");
             length = 1;
         }
-        Field::Scalar {
-            name: name,
-            length: length as u8,
-            is_pub: is_pub,
-            attrs: attrs,
-        }
+        FieldSize::Scalar { length: length as u8 }
+    };
+
+    Field {
+        name: name,
+        is_pub: is_pub,
+        attrs: attrs,
+        size: size,
     }
 }
 
