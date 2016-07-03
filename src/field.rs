@@ -123,7 +123,7 @@ impl Field {
                 bit_offset += can_set as u64;
                 value_shift -= 8;
             }
-            let block = cx.block(DUMMY_SP, stmts, None);
+            let block = cx.block(DUMMY_SP, stmts);
             let expr = cx.expr(DUMMY_SP, ast::ExprKind::Block(block));
             P(cx.stmt_expr(expr))
         }
@@ -170,7 +170,7 @@ impl Field {
 
 
 
-                let block = cx.block(DUMMY_SP, element_setter_stmts, None);
+                let block = cx.block(DUMMY_SP, element_setter_stmts);
                 let expr = cx.expr(DUMMY_SP, ast::ExprKind::Block(block));
                 let setter_stmt = cx.stmt_expr(expr);
                 (getter_expr, setter_stmt, value_type)

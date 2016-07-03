@@ -14,6 +14,7 @@ use syntax::ext::base::{ExtCtxt, MacEager, MacResult};
 use syntax::parse::common::SeqSep;
 use syntax::parse::token;
 use syntax::parse::token::keywords;
+use syntax::tokenstream;
 use syntax::util::small_vector::SmallVector;
 
 use field::parse_field;
@@ -21,7 +22,7 @@ use misc::*;
 
 fn expand_bitfield(cx: &mut ExtCtxt,
                    _sp: Span,
-                   tts: &[ast::TokenTree])
+                   tts: &[tokenstream::TokenTree])
                    -> Box<MacResult + 'static> {
 
     let mut parser = cx.new_parser_from_tts(tts);
