@@ -91,8 +91,7 @@ fn expand_bitfield(cx: &mut ExtCtxt,
                 $maybe_pub $maybe_const_new fn new(data: [u8; $byte_length]) -> $struct_ident {
                     $struct_ident { data: data}
                 }
-            })
-            .unwrap();
+            }).unwrap();
         methods.push(method_new);
         quote_item!(cx, $maybe_pub struct $struct_ident { $maybe_pub_data data: [u8; $byte_length]};).unwrap()
     } else {

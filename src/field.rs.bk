@@ -202,8 +202,7 @@ impl Field {
                $maybe_pub fn $setter_ident(&mut self, value: $value_type) {
                   $setter_stmt
                }
-           })
-            .unwrap();
+           }).unwrap();
         let setter = set_attrs_method(setter, &self.attrs);
         methods.push(setter);
 
