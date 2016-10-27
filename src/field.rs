@@ -258,7 +258,7 @@ pub fn parse_field(parser: &mut Parser) -> Field {
         // Field::Array
         let mut element_length = parse_u64(parser);
         if element_length == 0 || element_length > 64 {
-            let span = parser.last_span;
+            let span = parser.prev_span;
             parser.span_err(span, "Elements length must be > 0 and <= 64");
             // We set element_length to a dummy value, so we can continue parsing
             element_length = 1;
@@ -268,7 +268,7 @@ pub fn parse_field(parser: &mut Parser) -> Field {
 
         let mut count = parse_u64(parser);
         if count == 0 {
-            let span = parser.last_span;
+            let span = parser.prev_span;
             parser.span_err(span, "Elements count must be > 0");
             count = 1
         }
@@ -283,7 +283,7 @@ pub fn parse_field(parser: &mut Parser) -> Field {
         // Field::Scalar
         let mut length = parse_u64(parser);
         if length == 0 || length > 64 {
-            let span = parser.last_span;
+            let span = parser.prev_span;
             parser.span_err(span, "Field length must be > 0 and <= 64");
             length = 1;
         }
