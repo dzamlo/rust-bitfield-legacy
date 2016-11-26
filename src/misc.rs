@@ -1,11 +1,10 @@
 use syntax::ast;
-use syntax::parse::token;
 use syntax::ptr::P;
 
 
 pub fn make_maybe_ident(maybe: bool, ident: &str) -> Option<ast::Ident> {
     if maybe {
-        Some(token::str_to_ident(ident))
+        Some(ast::Ident::from_str(ident))
     } else {
         None
     }

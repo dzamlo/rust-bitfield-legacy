@@ -13,7 +13,7 @@ use syntax::codemap::Span;
 use syntax::ext::base::{ExtCtxt, MacEager, MacResult};
 use syntax::parse::common::SeqSep;
 use syntax::parse::token;
-use syntax::parse::token::keywords;
+use syntax::symbol::keywords;
 use syntax::tokenstream;
 use syntax::util::small_vector::SmallVector;
 
@@ -58,19 +58,15 @@ fn expand_bitfield(cx: &mut ExtCtxt,
     let mut pub_data = false;
     let attrs = attrs.into_iter()
         .filter(|a| {
-            match a.node.value.node {
-                ast::MetaItemKind::Word(ref w) => {
-                    match &w[..] {
-                        "const_new" => {
-                            const_new = true;
-                            false
-                        }
-                        "pub_data" => {
-                            pub_data = true;
-                            false
-                        }
-                        _ => true,
-                    }
+            match a.value {
+                ast::MetaItem { name, node: ast::MetaItemKind::Word, .. } if name ==
+                                                                             "const_new" => {
+                    const_new = true;
+                    false
+                }
+                ast::MetaItem { name, node: ast::MetaItemKind::Word, .. } if name == "pub_data" => {
+                    pub_data = true;
+                    false
                 }
                 _ => true,
             }

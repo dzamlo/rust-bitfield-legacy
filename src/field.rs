@@ -5,7 +5,7 @@ use syntax::ext::base::ExtCtxt;
 use syntax::ext::build::AstBuilder;
 use syntax::parse::parser::Parser;
 use syntax::parse::token;
-use syntax::parse::token::keywords;
+use syntax::symbol::keywords;
 use syntax::ptr::P;
 use std;
 
@@ -137,9 +137,9 @@ impl Field {
         let mut methods = vec![];
         let maybe_pub = make_maybe_pub(self.is_pub);
         let getter_name = "get_".to_owned() + &self.name;
-        let getter_ident = token::str_to_ident(&getter_name);
+        let getter_ident = ast::Ident::from_str(&getter_name);
         let setter_name = "set_".to_owned() + &self.name;
-        let setter_ident = token::str_to_ident(&setter_name);
+        let setter_ident = ast::Ident::from_str(&setter_name);
 
         let (getter_expr, setter_stmt, value_type) = match self.size {
             FieldSize::Array { count, element_length } => {
