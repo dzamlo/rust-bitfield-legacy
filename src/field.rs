@@ -13,13 +13,8 @@ use misc::make_maybe_pub;
 use misc::set_attrs_method;
 
 pub enum FieldSize {
-    Array {
-        count: usize,
-        element_length: u8,
-    },
-    Scalar {
-        length: u8,
-    },
+    Array { count: usize, element_length: u8 },
+    Scalar { length: u8 },
 }
 
 pub struct Field {
