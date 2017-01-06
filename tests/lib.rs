@@ -1,18 +1,20 @@
-#![feature(plugin)]
+#![feature(i128, i128_type, plugin)]
 #![plugin(bitfield)]
 
-use std::{u8, u16, u32, u64};
+use std::{u8, u16, u32, u64, u128};
 
 bitfield!{BitfiedlTestStruct1,
     aligned_u8: 8,
     aligned_u16: 16,
     aligned_u32: 32,
     aligned_u64: 64,
+    aligned_u128: 128,
     aligned_bool: 1,
     unaligned_u8: 8,
     unaligned_u16: 16,
     unaligned_u32: 32,
     unaligned_u64: 64,
+    unaligned_u128: 128,
     unaligned_bool: 1,
     unaligned_2 : 2,
     unaligned_3 : 3,
@@ -23,11 +25,12 @@ bitfield!{BitfiedlTestStruct1,
     unaligned_31 : 31,
     unaligned_33 : 33,
     unaligned_63 : 63,
+    unaligned_127 : 127,
     }
 
 #[test]
 fn get_set_aligned() {
-    let data = [0; 53];
+    let data = [0; 101];
     let mut foo = BitfiedlTestStruct1::new(data);
 
     assert!(foo.get_aligned_u8() == 0);
@@ -46,6 +49,10 @@ fn get_set_aligned() {
     foo.set_aligned_u64(u64::MAX);
     assert!(foo.get_aligned_u64() == u64::MAX);
 
+    assert!(foo.get_aligned_u128() == 0);
+    foo.set_aligned_u128(u128::MAX);
+    assert!(foo.get_aligned_u128() == u128::MAX);
+
     assert!(foo.get_aligned_bool() == false);
     foo.set_aligned_bool(true);
     assert!(foo.get_aligned_bool() == true);
@@ -53,7 +60,7 @@ fn get_set_aligned() {
 
 #[test]
 fn get_set_unaligned_whole_size() {
-    let data = [0; 53];
+    let data = [0; 101];
     let mut foo = BitfiedlTestStruct1::new(data);
 
     assert!(foo.get_unaligned_u8() == 0);
@@ -72,6 +79,10 @@ fn get_set_unaligned_whole_size() {
     foo.set_unaligned_u64(u64::MAX);
     assert!(foo.get_unaligned_u64() == u64::MAX);
 
+    assert!(foo.get_unaligned_u128() == 0);
+    foo.set_unaligned_u128(u128::MAX);
+    assert!(foo.get_unaligned_u128() == u128::MAX);
+
     assert!(foo.get_unaligned_bool() == false);
     foo.set_unaligned_bool(true);
     assert!(foo.get_unaligned_bool() == true);
@@ -79,7 +90,7 @@ fn get_set_unaligned_whole_size() {
 
 #[test]
 fn get_set_unaligned_nonwhole_size() {
-    let data = [0; 53];
+    let data = [0; 101];
     let mut foo = BitfiedlTestStruct1::new(data);
 
     assert!(foo.get_unaligned_2() == 0);
@@ -117,6 +128,10 @@ fn get_set_unaligned_nonwhole_size() {
     assert!(foo.get_unaligned_63() == 0);
     foo.set_unaligned_63(u64::MAX);
     assert!(foo.get_unaligned_63() == 0x7FFFFFFFFFFFFFFF);
+
+    assert!(foo.get_unaligned_127() == 0);
+    foo.set_unaligned_127(u128::MAX);
+    assert!(foo.get_unaligned_127() == u128::MAX >> 1);
 }
 
 bitfield!{BitfiedlTestStruct2,
@@ -124,11 +139,13 @@ bitfield!{BitfiedlTestStruct2,
     aligned_u16: [16; 3],
     aligned_u32: [32; 3],
     aligned_u64: [64; 3],
+    aligned_u128: [128; 3],
     aligned_bool: [1; 3],
     unaligned_u8: [8; 3],
     unaligned_u16: [16; 3],
     unaligned_u32: [32; 3],
     unaligned_u64: [64; 3],
+    unaligned_u128: [128; 3],
     unaligned_bool: [1; 3],
     unaligned_2 : [2; 3],
     unaligned_3 : [3; 3],
@@ -139,11 +156,12 @@ bitfield!{BitfiedlTestStruct2,
     unaligned_31 : [31; 3],
     unaligned_33 : [33; 3],
     unaligned_63 : [63; 3],
+    unaligned_127 : [127; 3],
     }
 
 #[test]
 fn get_set_aligned_array() {
-    let data = [0; 159];
+    let data = [0; 302];
     let mut foo = BitfiedlTestStruct2::new(data);
 
     assert!(foo.get_aligned_u8() == [0, 0, 0]);
@@ -162,6 +180,10 @@ fn get_set_aligned_array() {
     foo.set_aligned_u64([42, 0, u64::MAX]);
     assert!(foo.get_aligned_u64() == [42, 0, u64::MAX]);
 
+    assert!(foo.get_aligned_u128() == [0, 0, 0]);
+    foo.set_aligned_u128([42, 0, u128::MAX]);
+    assert!(foo.get_aligned_u128() == [42, 0, u128::MAX]);
+
     assert!(foo.get_aligned_bool() == [false, false, false]);
     foo.set_aligned_bool([false, false, true]);
     assert!(foo.get_aligned_bool() == [false, false, true]);
@@ -169,7 +191,7 @@ fn get_set_aligned_array() {
 
 #[test]
 fn get_set_unaligned_whole_size_array() {
-    let data = [0; 159];
+    let data = [0; 302];
     let mut foo = BitfiedlTestStruct2::new(data);
 
     assert!(foo.get_unaligned_u8() == [0, 0, 0]);
@@ -188,6 +210,10 @@ fn get_set_unaligned_whole_size_array() {
     foo.set_unaligned_u64([42, 0, u64::MAX]);
     assert!(foo.get_unaligned_u64() == [42, 0, u64::MAX]);
 
+    assert!(foo.get_unaligned_u128() == [0, 0, 0]);
+    foo.set_unaligned_u128([42, 0, u128::MAX]);
+    assert!(foo.get_unaligned_u128() == [42, 0, u128::MAX]);
+
     assert!(foo.get_unaligned_bool() == [false, false, false]);
     foo.set_unaligned_bool([false, false, true]);
     assert!(foo.get_unaligned_bool() == [false, false, true]);
@@ -195,7 +221,7 @@ fn get_set_unaligned_whole_size_array() {
 
 #[test]
 fn get_set_unaligned_nonwhole_size_array() {
-    let data = [0; 159];
+    let data = [0; 302];
     let mut foo = BitfiedlTestStruct2::new(data);
 
     assert!(foo.get_unaligned_2() == [0, 0, 0]);
@@ -233,6 +259,10 @@ fn get_set_unaligned_nonwhole_size_array() {
     assert!(foo.get_unaligned_63() == [0, 0, 0]);
     foo.set_unaligned_63([42, 0, u64::MAX]);
     assert!(foo.get_unaligned_63() == [42, 0, 0x7FFFFFFFFFFFFFFF]);
+
+    assert!(foo.get_unaligned_127() == [0, 0, 0]);
+    foo.set_unaligned_127([42, 0, u128::MAX]);
+    assert!(foo.get_unaligned_127() == [42, 0, u128::MAX >> 1]);
 }
 
 bitfield!{BitfiedlTestStruct3,
@@ -341,4 +371,19 @@ fn other_literal_form_for_fields_size() {
     assert!(foo.get_field5() == [0, 0, 0]);
     foo.set_field5([42, 0, u16::MAX]);
     assert!(foo.get_field5() == [42, 0, 0x3FF]);
+}
+
+bitfield!{BitfiedlTestStruct8,
+          value: 128,
+}
+
+#[test]
+fn byte_order_128() {
+    let data = [0; 16];
+    let mut foo = BitfiedlTestStruct8::new(data);
+    assert!(foo.get_value() == 0x0);
+    foo.data = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10];
+    assert!(foo.get_value() == 0x123456789ABCDEF0FEDCBA9876543210);
+    foo.set_value(0xFEDCBA9876543210123456789ABCDEF0);
+    assert!(foo.data == [0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0]);
 }

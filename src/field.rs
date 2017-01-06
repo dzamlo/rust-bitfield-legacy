@@ -216,7 +216,7 @@ macro_rules! expect_token {
     }
 }
 
-fn parse_u64(parser: &mut Parser) -> u64 {
+fn parse_u128(parser: &mut Parser) -> u128 {
     let lit = parser.parse_lit();
     match lit {
         Ok(lit) => {
@@ -251,17 +251,17 @@ pub fn parse_field(parser: &mut Parser) -> Field {
 
     let size = if parser.eat(&token::OpenDelim(token::Bracket)) {
         // Field::Array
-        let mut element_length = parse_u64(parser);
-        if element_length == 0 || element_length > 64 {
+        let mut element_length = parse_u128(parser);
+        if element_length == 0 || element_length > 128 {
             let span = parser.prev_span;
-            parser.span_err(span, "Elements length must be > 0 and <= 64");
+            parser.span_err(span, "Elements length must be > 0 and <= 128");
             // We set element_length to a dummy value, so we can continue parsing
             element_length = 1;
         }
 
         expect_token!(parser, &token::Semi);
 
-        let mut count = parse_u64(parser);
+        let mut count = parse_u128(parser);
         if count == 0 {
             let span = parser.prev_span;
             parser.span_err(span, "Elements count must be > 0");
@@ -276,10 +276,10 @@ pub fn parse_field(parser: &mut Parser) -> Field {
         }
     } else {
         // Field::Scalar
-        let mut length = parse_u64(parser);
-        if length == 0 || length > 64 {
+        let mut length = parse_u128(parser);
+        if length == 0 || length > 128 {
             let span = parser.prev_span;
-            parser.span_err(span, "Field length must be > 0 and <= 64");
+            parser.span_err(span, "Field length must be > 0 and <= 128");
             length = 1;
         }
         FieldSize::Scalar { length: length as u8 }
@@ -305,6 +305,7 @@ fn size_to_ty(cx: &mut ExtCtxt, size: u8) -> Option<(P<ast::Ty>, u8)> {
         i if i <= 16 => Some((quote_ty!(cx, u16), 16)),
         i if i <= 32 => Some((quote_ty!(cx, u32), 32)),
         i if i <= 64 => Some((quote_ty!(cx, u64), 64)),
+        i if i <= 128 => Some((quote_ty!(cx, u128), 128)),
         _ => None,
     }
 }
