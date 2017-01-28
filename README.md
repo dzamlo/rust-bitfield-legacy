@@ -30,6 +30,9 @@ git = "https://github.com/dzamlo/rust-bitfield"
 
 See the [examples folder](examples) for examples of the use the macro.
 
+As the stable compiler (`rustc`) doesn't allow plugin for now, you have to use
+[the nighlty toolchain](https://github.com/rust-lang-nursery/rustup.rs#working-with-nightly-rust).
+
 ## License
 
 Licensed under either of
