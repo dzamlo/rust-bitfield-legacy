@@ -58,21 +58,17 @@ fn expand_bitfield(cx: &mut ExtCtxt,
     let mut pub_data = false;
     let attrs = attrs.into_iter()
         .filter(|a| {
-            match a.value {
-                ast::MetaItem { name, node: ast::MetaItemKind::Word, .. } if name ==
-                                                                             "const_new" => {
-                    const_new = true;
-                    false
-                }
-                ast::MetaItem { name, node: ast::MetaItemKind::Word, .. } if name == "pub_data" => {
-                    pub_data = true;
-                    false
-                }
-                _ => true,
+            if a.path == "const_new" {
+                const_new = true;
+                false
+            } else if a.path == "pub_data" {
+                pub_data = true;
+                false
+            } else {
+                true
             }
         })
         .collect();
-
     let mut methods = Vec::with_capacity(fields.len() * 2 + 1);
     let bit_length = fields.iter().fold(0, |a, b| a + b.bit_len());
     let byte_length = ((bit_length + 7) / 8) as usize;
