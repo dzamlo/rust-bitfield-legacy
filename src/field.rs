@@ -27,7 +27,10 @@ pub struct Field {
 impl Field {
     pub fn bit_len(&self) -> u64 {
         match self.size {
-            FieldSize::Array { count, element_length } => (count as u64) * element_length as u64,
+            FieldSize::Array {
+                count,
+                element_length,
+            } => (count as u64) * element_length as u64,
             FieldSize::Scalar { length } => length as u64,
         }
     }
@@ -54,10 +57,11 @@ impl Field {
 
                 value_expr = match value_expr {
                     Some(expr) => {
-                        let shifted = cx.expr_binary(DUMMY_SP,
-                                                     ast::BinOpKind::Shl,
-                                                     expr,
-                                                     cx.expr_usize(DUMMY_SP, can_get as usize));
+                        let shifted =
+                            cx.expr_binary(DUMMY_SP,
+                                           ast::BinOpKind::Shl,
+                                           expr,
+                                           cx.expr_usize(DUMMY_SP, can_get as usize));
                         Some(cx.expr_binary(DUMMY_SP, ast::BinOpKind::BitOr, shifted, bits_expr))
                     }
                     None => Some(bits_expr),
@@ -81,7 +85,7 @@ impl Field {
                           if value {self.data[$index] |= $mask
                           } else {self.data[$index] &= !($mask)
                           })
-                .unwrap())
+                      .unwrap())
         } else {
             let mut stmts = Vec::new();
             let mut bits_to_set = length;
@@ -105,13 +109,13 @@ impl Field {
                     stmts.push(quote_stmt!(cx, self.data[$index] =
                         (self.data[$index] & !$mask) |
                         ((value >> $value_shift) as u8)& $mask)
-                        .unwrap());
+                                       .unwrap());
                 } else {
                     let value_shift = (-value_shift) as usize;
                     stmts.push(quote_stmt!(cx, self.data[$index] =
                         (self.data[$index] & !$mask) |
                         ((value << $value_shift) as u8)& $mask)
-                        .unwrap());
+                                       .unwrap());
                 }
 
                 bits_to_set -= can_set;
@@ -137,7 +141,10 @@ impl Field {
         let setter_ident = ast::Ident::from_str(&setter_name);
 
         let (getter_expr, setter_stmt, value_type) = match self.size {
-            FieldSize::Array { count, element_length } => {
+            FieldSize::Array {
+                count,
+                element_length,
+            } => {
                 let (element_type, value_type_length) = size_to_ty(cx, element_length).unwrap();
                 let value_type = make_array_ty(cx, &element_type, count);
 
@@ -160,7 +167,7 @@ impl Field {
                                                                 element_start,
                                                                 element_length);
                     element_setter_stmts.push(quote_stmt!(cx, { let value = value[$i]; $stmt })
-                        .unwrap());
+                                                  .unwrap());
                 }
 
 
@@ -187,7 +194,7 @@ impl Field {
                   $getter_expr
                }
            })
-            .unwrap();
+                .unwrap();
         let getter = set_attrs_method(getter, &self.attrs);
         methods.push(getter);
 
@@ -198,7 +205,7 @@ impl Field {
                   $setter_stmt
                }
            })
-            .unwrap();
+                .unwrap();
         let setter = set_attrs_method(setter, &self.attrs);
         methods.push(setter);
 

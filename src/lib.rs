@@ -56,17 +56,16 @@ fn expand_bitfield(cx: &mut ExtCtxt,
 
     let mut const_new = false;
     let mut pub_data = false;
-    let attrs = attrs.into_iter()
-        .filter(|a| {
-            if a.path == "const_new" {
-                const_new = true;
-                false
-            } else if a.path == "pub_data" {
-                pub_data = true;
-                false
-            } else {
-                true
-            }
+    let attrs = attrs
+        .into_iter()
+        .filter(|a| if a.path == "const_new" {
+                    const_new = true;
+                    false
+                } else if a.path == "pub_data" {
+            pub_data = true;
+            false
+        } else {
+            true
         })
         .collect();
     let mut methods = Vec::with_capacity(fields.len() * 2 + 1);
@@ -84,16 +83,16 @@ fn expand_bitfield(cx: &mut ExtCtxt,
                     $struct_ident { data: data}
                 }
             })
-            .unwrap();
+                .unwrap();
         methods.push(method_new);
         quote_item!(cx, $maybe_pub struct $struct_ident { $maybe_pub_data data: [u8; $byte_length]};).unwrap()
     } else {
         quote_item!(cx, $maybe_pub struct $struct_ident { };).unwrap()
     };
     let struct_decl = struct_decl.map(|mut s| {
-        s.attrs = attrs;
-        s
-    });
+                                          s.attrs = attrs;
+                                          s
+                                      });
 
     let mut field_start = 0;
     for field in fields {

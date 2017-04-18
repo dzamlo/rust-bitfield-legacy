@@ -7,6 +7,4 @@ bitfield!{
     pub Empty,
 }
 
-fn main() {
-
-}
+fn main() {}
