@@ -8,7 +8,6 @@ mod field;
 mod misc;
 
 use rustc_plugin::Registry;
-use syntax::ast;
 use syntax::codemap::Span;
 use syntax::ext::base::{ExtCtxt, MacEager, MacResult};
 use syntax::parse::common::SeqSep;
